@@ -135,6 +135,8 @@ export component MainWindow inherits Window {
     callback pay-custom-invoice(string); // bolt11
     callback claim-custom-invoice(string, string); // hash, preimage
     callback create-standard-invoice(string, int); // memo, amount
+    callback check-node-status();
+    callback start-node();
     
     // Special callback for updating preimage/hash display
     callback update-preimage-hash(string, string); // preimage, hash
@@ -144,6 +146,8 @@ export component MainWindow inherits Window {
     
     in property <[Invoice]> invoices: [];
     in property <string> status-message;
+    in property <bool> node-is-running: false;
+    in property <string> node-sync-status: "Unknown";
     property <bool> has-error: status-message != "" && (status-message == "Error" || status-message == "Error: ");
     
     // Local storage for preimage and hash
@@ -174,6 +178,63 @@ export component MainWindow inherits Window {
                     font-size: 18px;
                     font-weight: 700;
                     color: #e0e0e0;
+                }
+                
+                // Node status indicator
+                Rectangle {
+                    height: 64px;
+                    background: #252525;
+                    border-radius: 4px;
+                    
+                    VerticalLayout {
+                        padding: 8px;
+                        spacing: 4px;
+                        
+                        HorizontalLayout {
+                            spacing: 6px;
+                            
+                            Rectangle {
+                                width: 12px;
+                                height: 12px;
+                                border-radius: 6px;
+                                background: root.node-is-running ? #20c997 : #dc3545;
+                            }
+                            
+                            Text {
+                                text: root.node-is-running ? "Node Running" : "Node Offline";
+                                color: root.node-is-running ? #e0e0e0 : #ffb0a3;
+                                font-weight: 500;
+                                vertical-alignment: center;
+                            }
+                        }
+                        
+                        Text {
+                            text: "Sync: " + root.node-sync-status;
+                            color: #bbbbbb;
+                            font-size: 13px;
+                        }
+                        
+                        TouchArea {
+                            clicked => { root.check-node-status(); }
+                            Text {
+                                text: "Refresh Status";
+                                color: #5294e2;
+                                font-size: 12px;
+                                horizontal-alignment: center;
+                            }
+                        }
+                        
+                        if !root.node-is-running: TouchArea {
+                            clicked => { root.start-node(); }
+                            Text {
+                                text: "Start Lightning Node";
+                                color: #20c997;
+                                font-size: 12px;
+                                font-weight: 500;
+                                horizontal-alignment: center;
+                            }
+                        }
+                    }
                 }
                 
                 Rectangle { height: 1px; background: #3a3a3a; }

@@ -5,6 +5,9 @@ use slint::{SharedString, Timer, TimerMode};
 use std::process::Command;
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
+use std::path::Path;
+use std::fs;
+use std::io::Write;
 
 slint::include_modules!();
 
@@ -14,6 +17,8 @@ struct AppState {
     status_message: String,
     preimage_output: String,
     hash_output: String,
+    node_is_running: bool,
+    node_sync_status: String,
 }
 
 impl Default for AppState {
@@ -23,6 +28,8 @@ impl Default for AppState {
             status_message: String::new(),
             preimage_output: String::new(),
             hash_output: String::new(),
+            node_is_running: false,
+            node_sync_status: "Unknown".to_string(),
         }
     }
 }
@@ -40,10 +47,20 @@ fn generate_preimage() -> (String, String) {
 }
 
 fn run_lncli(args: &[&str]) -> Result<String> {
-    let output = Command::new("lncli")
-        .args(["--network", "testnet"])
-        .args(args)
-        .output()?;
+    // Build command with custom RPC server settings
+    let mut command = Command::new("lncli");
+    
+    // Add network flag
+    command.arg("--network=testnet");
+    
+    // Add custom RPC server flag - adjust this based on your litd configuration
+    // Use this if your LND RPC server is running on a non-default port
+    command.arg("--rpcserver=127.0.0.1:10009");
+    
+    // Add the rest of the arguments
+    command.args(args);
+    
+    let output = command.output()?;
 
     if !output.status.success() {
         return Err(anyhow!(
@@ -142,6 +159,45 @@ fn open_channel(node_pubkey: &str, amount: i32) -> Result<String> {
     run_lncli(&["openchannel", "--node_key", node_pubkey, "--local_amt", &amount.to_string()])
 }
 
+fn check_node_status() -> Result<(bool, String)> {
+    // Build command with custom RPC server settings
+    let mut command = Command::new("lncli");
+    
+    // Add network flag
+    command.arg("--network=testnet");
+    
+    // Add custom RPC server flag - adjust this based on your litd configuration
+    // Use this if your LND RPC server is running on a non-default port
+    command.arg("--rpcserver=127.0.0.1:10009");
+    
+    // Add getinfo command
+    command.arg("getinfo");
+    
+    let output = command.output();
+
+    match output {
+        Ok(output) => {
+            if !output.status.success() {
+                return Ok((false, "Node is not responding".to_string()));
+            }
+
+            let stdout = String::from_utf8_lossy(&output.stdout);
+            
+            // Extract sync status from JSON output
+            let sync_status = if stdout.contains("\"synced_to_chain\":true") {
+                "Chain synced".to_string()
+            } else if stdout.contains("\"synced_to_chain\":false") {
+                "Syncing...".to_string()
+            } else {
+                "Unknown".to_string()
+            };
+
+            Ok((true, sync_status))
+        },
+        Err(_) => Ok((false, "Node is offline".to_string())),
+    }
+}
+
 fn settle_invoice(hash: &str, preimage: &str) -> Result<()> {
     run_lncli(&["settleinvoice", "--preimage", preimage])?;
     Ok(())
@@ -157,11 +213,269 @@ where
     });
 }
 
+fn check_litd_config() -> Result<bool> {
+    // Get user's home directory
+    let home = dirs::home_dir()
+        .ok_or_else(|| anyhow!("Could not determine user's home directory"))?;
+
+    // Check if the .lit directory exists, create if not
+    let lit_dir = home.join(".lit");
+    if !lit_dir.exists() {
+        fs::create_dir_all(&lit_dir)?;
+    }
+
+    // Check if the lit.conf file exists
+    let conf_path = lit_dir.join("lit.conf");
+    if !conf_path.exists() {
+        // Create a default config file
+        let mut file = fs::File::create(&conf_path)?;
+        let default_config = r#"httpslisten=0.0.0.0:8443
+uipassword=password_change_me
+lnd-mode=integrated
+lnd.bitcoin.active=1
+lnd.bitcoin.testnet=1
+lnd.bitcoin.node=neutrino
+lnd.feeurl=https://nodes.lightning.computer/fees/v1/btc-fee-estimates.json
+lnd.protocol.option-scid-alias=true
+lnd.protocol.zero-conf=true
+"#;
+        file.write_all(default_config.as_bytes())?;
+        
+        return Ok(false); // Indicates we created a new config
+    }
+
+    Ok(true) // Config already existed
+}
+
+fn start_lightning_node() -> Result<()> {
+    // Get the user's home directory
+    let home = dirs::home_dir()
+        .ok_or_else(|| anyhow!("Could not determine user's home directory"))?;
+    
+    // Check if the lit.conf file exists
+    let conf_path = home.join(".lit").join("lit.conf");
+    if !conf_path.exists() {
+        return Err(anyhow!("lit.conf file not found. Please run the app again to create it."));
+    }
+    
+    // Use a different command based on the OS
+    #[cfg(target_os = "windows")]
+    let mut command = Command::new("cmd");
+    #[cfg(target_os = "windows")]
+    command.args(["/c", "start", "cmd", "/k", "litd", "--network=testnet"]);
+    
+    #[cfg(not(target_os = "windows"))]
+    let mut command = Command::new("sh");
+    #[cfg(not(target_os = "windows"))]
+    command.args(["-c", "litd --network=testnet &"]);
+    
+    // Execute the command
+    command.spawn()?;
+    
+    Ok(())
+}
+
 #[tokio::main]
 async fn main() -> Result<()> {
     let app_state = Arc::new(Mutex::new(AppState::default()));
     let window = MainWindow::new()?;
     let window_weak = window.as_weak();
+
+    // Check if litd configuration exists, create if not
+    match check_litd_config() {
+        Ok(existed) => {
+            if !existed {
+                // Config was newly created
+                if let Some(window) = window_weak.upgrade() {
+                    window.set_status_message(SharedString::from(
+                        "Created new lit.conf file. Please edit it with secure password before starting litd."
+                    ));
+                }
+            }
+        },
+        Err(e) => {
+            // Could not create/check config
+            if let Some(window) = window_weak.upgrade() {
+                window.set_status_message(SharedString::from(
+                    format!("Could not configure litd: {}", e)
+                ));
+            }
+        }
+    }
+
+    // Check node status at startup
+    {
+        let app_state = app_state.clone();
+        let window_weak = window_weak.clone();
+        
+        std::thread::spawn(move || {
+            match check_node_status() {
+                Ok((is_running, sync_status)) => {
+                    {
+                        if let Ok(mut state) = app_state.lock() {
+                            state.node_is_running = is_running;
+                            state.node_sync_status = sync_status.clone();
+                            if !is_running {
+                                state.status_message = "Lightning node (lnd) is not running. Please start litd using: litd --network testnet".to_string();
+                            }
+                        }
+                    }
+                    
+                    if let Some(window) = window_weak.upgrade() {
+                        window.set_node_is_running(is_running);
+                        window.set_node_sync_status(SharedString::from(sync_status));
+                        if !is_running {
+                            window.set_status_message(SharedString::from(
+                                "Lightning node (lnd) is not running. Please start litd using: litd --network testnet"
+                            ));
+                        }
+                    }
+                },
+                Err(e) => {
+                    let error_msg = format!("Error checking node status: {}. Make sure litd is running.", e);
+                    {
+                        if let Ok(mut state) = app_state.lock() {
+                            state.status_message = error_msg.clone();
+                            state.node_is_running = false;
+                            state.node_sync_status = "Error".to_string();
+                        }
+                    }
+                    
+                    if let Some(window) = window_weak.upgrade() {
+                        window.set_status_message(SharedString::from(error_msg));
+                        window.set_node_is_running(false);
+                        window.set_node_sync_status(SharedString::from("Error"));
+                    }
+                }
+            }
+        });
+    }
+
+    // Handle check node status button
+    {
+        let app_state = app_state.clone();
+        let window_weak = window_weak.clone();
+        window.on_check_node_status(move || {
+            let app_state = app_state.clone();
+            let window_weak = window_weak.clone();
+            
+            std::thread::spawn(move || {
+                match check_node_status() {
+                    Ok((is_running, sync_status)) => {
+                        {
+                            if let Ok(mut state) = app_state.lock() {
+                                state.node_is_running = is_running;
+                                state.node_sync_status = sync_status.clone();
+                                state.status_message = "Node status updated".to_string();
+                            }
+                        }
+                        
+                        if let Some(window) = window_weak.upgrade() {
+                            window.set_node_is_running(is_running);
+                            window.set_node_sync_status(SharedString::from(sync_status));
+                            window.set_status_message(SharedString::from("Node status updated"));
+                        }
+                    },
+                    Err(e) => {
+                        let error_msg = format!("Error checking node status: {}. Make sure litd is running.", e);
+                        {
+                            if let Ok(mut state) = app_state.lock() {
+                                state.status_message = error_msg.clone();
+                                state.node_is_running = false;
+                                state.node_sync_status = "Error".to_string();
+                            }
+                        }
+                        
+                        if let Some(window) = window_weak.upgrade() {
+                            window.set_status_message(SharedString::from(error_msg));
+                            window.set_node_is_running(false);
+                            window.set_node_sync_status(SharedString::from("Error"));
+                        }
+                    }
+                }
+            });
+        });
+    }
+
+    // Handle start node button
+    {
+        let app_state = app_state.clone();
+        let window_weak = window_weak.clone();
+        window.on_start_node(move || {
+            let app_state = app_state.clone();
+            let window_weak = window_weak.clone();
+            
+            std::thread::spawn(move || {
+                match start_lightning_node() {
+                    Ok(()) => {
+                        let status_msg = "Starting Lightning node... Please wait a few moments for it to initialize.";
+                        {
+                            if let Ok(mut state) = app_state.lock() {
+                                state.status_message = status_msg.to_string();
+                            }
+                        }
+                        
+                        if let Some(window) = window_weak.upgrade() {
+                            window.set_status_message(SharedString::from(status_msg));
+                        }
+                        
+                        // Wait a bit and then check the status
+                        std::thread::sleep(Duration::from_secs(5));
+                        
+                        match check_node_status() {
+                            Ok((is_running, sync_status)) => {
+                                {
+                                    if let Ok(mut state) = app_state.lock() {
+                                        state.node_is_running = is_running;
+                                        state.node_sync_status = sync_status.clone();
+                                        if is_running {
+                                            state.status_message = "Lightning node started successfully".to_string();
+                                        } else {
+                                            state.status_message = "Lightning node still starting. Check status again in a moment.".to_string();
+                                        }
+                                    }
+                                }
+                                
+                                if let Some(window) = window_weak.upgrade() {
+                                    window.set_node_is_running(is_running);
+                                    window.set_node_sync_status(SharedString::from(sync_status));
+                                    if is_running {
+                                        window.set_status_message(SharedString::from("Lightning node started successfully"));
+                                    } else {
+                                        window.set_status_message(SharedString::from("Lightning node still starting. Check status again in a moment."));
+                                    }
+                                }
+                            },
+                            Err(e) => {
+                                let error_msg = format!("Error checking node after start: {}", e);
+                                {
+                                    if let Ok(mut state) = app_state.lock() {
+                                        state.status_message = error_msg.clone();
+                                    }
+                                }
+                                
+                                if let Some(window) = window_weak.upgrade() {
+                                    window.set_status_message(SharedString::from(error_msg));
+                                }
+                            }
+                        }
+                    },
+                    Err(e) => {
+                        let error_msg = format!("Error starting Lightning node: {}", e);
+                        {
+                            if let Ok(mut state) = app_state.lock() {
+                                state.status_message = error_msg.clone();
+                            }
+                        }
+                        
+                        if let Some(window) = window_weak.upgrade() {
+                            window.set_status_message(SharedString::from(error_msg));
+                        }
+                    }
+                }
+            });
+        });
+    }
 
     // Handle manage channels
     {
@@ -508,6 +822,48 @@ async fn main() -> Result<()> {
                         invoices_clone,
                     )));
                     window.set_status_message(SharedString::from("Updated invoice states"));
+                }
+            }
+        });
+    }
+
+    // Set up node status checking timer
+    {
+        let app_state = app_state.clone();
+        let window_weak = window_weak.clone();
+        spawn_ui_timer(&window, Duration::from_secs(30), move || {
+            match check_node_status() {
+                Ok((is_running, sync_status)) => {
+                    {
+                        if let Ok(mut state) = app_state.lock() {
+                            // Only update if status changed
+                            if state.node_is_running != is_running || 
+                               state.node_sync_status != sync_status {
+                                state.node_is_running = is_running;
+                                state.node_sync_status = sync_status.clone();
+                            }
+                        }
+                    }
+                    
+                    if let Some(window) = window_weak.upgrade() {
+                        window.set_node_is_running(is_running);
+                        window.set_node_sync_status(SharedString::from(sync_status));
+                    }
+                },
+                Err(_) => {
+                    {
+                        if let Ok(mut state) = app_state.lock() {
+                            if state.node_is_running {
+                                state.node_is_running = false;
+                                state.node_sync_status = "Offline".to_string();
+                            }
+                        }
+                    }
+                    
+                    if let Some(window) = window_weak.upgrade() {
+                        window.set_node_is_running(false);
+                        window.set_node_sync_status(SharedString::from("Offline"));
+                    }
                 }
             }
         });
