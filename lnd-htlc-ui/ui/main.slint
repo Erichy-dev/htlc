@@ -137,6 +137,7 @@ export component MainWindow inherits Window {
     callback create-standard-invoice(string, int); // memo, amount
     callback check-node-status();
     callback start-node();
+    callback unlock-wallet(string); // password
     
     // Special callback for updating preimage/hash display
     callback update-preimage-hash(string, string); // preimage, hash
@@ -148,6 +149,7 @@ export component MainWindow inherits Window {
     in property <string> status-message;
     in property <bool> node-is-running: false;
     in property <string> node-sync-status: "Unknown";
+    in property <bool> wallet-needs-unlock: false;
     property <bool> has-error: status-message != "" && (status-message == "Error" || status-message == "Error: ");
     
     // Local storage for preimage and hash
@@ -214,6 +216,13 @@ export component MainWindow inherits Window {
                             font-size: 13px;
                         }
                         
+                        // Add debug text to show the wallet lock status
+                        Text {
+                            text: "Wallet needs unlock: " + (root.wallet-needs-unlock ? "Yes" : "No");
+                            color: root.wallet-needs-unlock ? #dc3545 : #20c997;
+                            font-size: 13px;
+                        }
+                        
                         TouchArea {
                             clicked => { root.check-node-status(); }
                             Text {
@@ -232,6 +241,35 @@ export component MainWindow inherits Window {
                                 font-size: 12px;
                                 font-weight: 500;
                                 horizontal-alignment: center;
+                            }
+                        }
+                        
+                        // Ensure the wallet unlock UI is always visible during testing
+                        if root.wallet-needs-unlock: VerticalLayout {
+                            spacing: 4px;
+                            
+                            wallet-password := LineEdit {
+                                placeholder-text: "Enter wallet password";
+                                input-type: password;
+                                height: 24px;
+                            }
+                            
+                            TouchArea {
+                                clicked => { root.unlock-wallet(wallet-password.text); }
+                                Rectangle {
+                                    height: 24px;
+                                    background: #5294e2;
+                                    border-radius: 4px;
+                                    
+                                    Text {
+                                        text: "Unlock Wallet";
+                                        color: white;
+                                        font-size: 12px;
+                                        font-weight: 500;
+                                        horizontal-alignment: center;
+                                        vertical-alignment: center;
+                                    }
+                                }
                             }
                         }
                     }

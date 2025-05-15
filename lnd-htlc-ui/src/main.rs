@@ -19,6 +19,7 @@ struct AppState {
     hash_output: String,
     node_is_running: bool,
     node_sync_status: String,
+    wallet_needs_unlock: bool,
 }
 
 impl Default for AppState {
@@ -30,6 +31,7 @@ impl Default for AppState {
             hash_output: String::new(),
             node_is_running: false,
             node_sync_status: "Unknown".to_string(),
+            wallet_needs_unlock: false,
         }
     }
 }
@@ -159,43 +161,51 @@ fn open_channel(node_pubkey: &str, amount: i32) -> Result<String> {
     run_lncli(&["openchannel", "--node_key", node_pubkey, "--local_amt", &amount.to_string()])
 }
 
-fn check_node_status() -> Result<(bool, String)> {
-    // Build command with custom RPC server settings
-    let mut command = Command::new("lncli");
+fn check_node_status() -> Result<(bool, String, bool)> {
+    // First check if the node is running at all
+    let lncli_check = Command::new("lncli")
+        .arg("--network=testnet")
+        .arg("--rpcserver=127.0.0.1:10009")
+        .arg("getinfo")
+        .output();
     
-    // Add network flag
-    command.arg("--network=testnet");
-    
-    // Add custom RPC server flag - adjust this based on your litd configuration
-    // Use this if your LND RPC server is running on a non-default port
-    command.arg("--rpcserver=127.0.0.1:10009");
-    
-    // Add getinfo command
-    command.arg("getinfo");
-    
-    let output = command.output();
-
-    match output {
-        Ok(output) => {
-            if !output.status.success() {
-                return Ok((false, "Node is not responding".to_string()));
-            }
-
-            let stdout = String::from_utf8_lossy(&output.stdout);
-            
-            // Extract sync status from JSON output
-            let sync_status = if stdout.contains("\"synced_to_chain\":true") {
-                "Chain synced".to_string()
-            } else if stdout.contains("\"synced_to_chain\":false") {
-                "Syncing...".to_string()
-            } else {
-                "Unknown".to_string()
-            };
-
-            Ok((true, sync_status))
-        },
-        Err(_) => Ok((false, "Node is offline".to_string())),
+    // If we couldn't run the command at all, node is offline
+    if lncli_check.is_err() {
+        return Ok((false, "Node is offline".to_string(), false));
     }
+    
+    let output = lncli_check.unwrap();
+    let stderr = String::from_utf8_lossy(&output.stderr);
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    
+    // Explicitly check for wallet locked message
+    let wallet_locked = stderr.contains("wallet locked") || 
+                       stderr.contains("wallet not unlocked") ||
+                       stderr.contains("wallet state: LOCKED");
+    
+    if wallet_locked {
+        // If wallet is locked, node is running but wallet needs unlock
+        println!("Detected wallet is locked. stderr: {}", stderr);
+        return Ok((true, "Wallet locked".to_string(), true));
+    }
+    
+    if !output.status.success() {
+        // If failed but not due to wallet lock, node may have other issues
+        println!("Node not responding properly. stderr: {}", stderr);
+        return Ok((false, "Node is not responding".to_string(), false));
+    }
+    
+    // Successfully got info, check sync status
+    let sync_status = if stdout.contains("\"synced_to_chain\":true") {
+        "Chain synced".to_string()
+    } else if stdout.contains("\"synced_to_chain\":false") {
+        "Syncing...".to_string()
+    } else {
+        "Unknown".to_string()
+    };
+    
+    // Node is running and wallet is unlocked
+    Ok((true, sync_status, false))
 }
 
 fn settle_invoice(hash: &str, preimage: &str) -> Result<()> {
@@ -267,12 +277,61 @@ fn start_lightning_node() -> Result<()> {
     #[cfg(not(target_os = "windows"))]
     let mut command = Command::new("sh");
     #[cfg(not(target_os = "windows"))]
-    command.args(["-c", "litd --network=testnet &"]);
+    command.args(["-c", "gnome-terminal -- bash -c 'litd --network=testnet; read'"]);
     
     // Execute the command
     command.spawn()?;
     
     Ok(())
+}
+
+fn is_wallet_locked() -> Result<bool> {
+    // Try to run getinfo - if it fails with a wallet locked error, return true
+    let output = Command::new("lncli")
+        .arg("--network=testnet")
+        .arg("--rpcserver=127.0.0.1:10009")
+        .arg("getinfo")
+        .output()?;
+    
+    // Check for wallet locked error in stderr
+    let stderr = String::from_utf8_lossy(&output.stderr);
+    
+    // If the wallet is locked, lncli will return an error with "wallet locked" in it
+    Ok(stderr.contains("wallet locked") || stderr.contains("wallet not unlocked"))
+}
+
+fn unlock_wallet(password: &str) -> Result<bool> {
+    println!("Attempting to unlock wallet...");
+    
+    let output = Command::new("lncli")
+        .arg("--network=testnet")
+        .arg("--rpcserver=127.0.0.1:10009")
+        .arg("unlock")
+        .arg("--password")
+        .arg(password)
+        .output()?;
+    
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    let stderr = String::from_utf8_lossy(&output.stderr);
+    
+    println!("Unlock command stdout: {}", stdout);
+    println!("Unlock command stderr: {}", stderr);
+    
+    // Check if unlock was successful
+    if output.status.success() {
+        println!("Wallet unlock successful");
+        return Ok(true);
+    }
+    
+    // If there was an error, check if it's because the wallet is already unlocked
+    if stderr.contains("wallet already unlocked") {
+        println!("Wallet was already unlocked");
+        return Ok(true); // It's already unlocked, which is what we want
+    }
+    
+    // Otherwise, something went wrong
+    println!("Wallet unlock failed");
+    Ok(false)
 }
 
 #[tokio::main]
@@ -310,11 +369,12 @@ async fn main() -> Result<()> {
         
         std::thread::spawn(move || {
             match check_node_status() {
-                Ok((is_running, sync_status)) => {
+                Ok((is_running, sync_status, wallet_locked)) => {
                     {
                         if let Ok(mut state) = app_state.lock() {
                             state.node_is_running = is_running;
                             state.node_sync_status = sync_status.clone();
+                            state.wallet_needs_unlock = wallet_locked;
                             if !is_running {
                                 state.status_message = "Lightning node (lnd) is not running. Please start litd using: litd --network testnet".to_string();
                             }
@@ -324,9 +384,14 @@ async fn main() -> Result<()> {
                     if let Some(window) = window_weak.upgrade() {
                         window.set_node_is_running(is_running);
                         window.set_node_sync_status(SharedString::from(sync_status));
+                        window.set_wallet_needs_unlock(wallet_locked);
                         if !is_running {
                             window.set_status_message(SharedString::from(
                                 "Lightning node (lnd) is not running. Please start litd using: litd --network testnet"
+                            ));
+                        } else if wallet_locked {
+                            window.set_status_message(SharedString::from(
+                                "Lightning wallet is locked. Please unlock it with your wallet password (this is the password from your lit.conf file)."
                             ));
                         }
                     }
@@ -361,11 +426,12 @@ async fn main() -> Result<()> {
             
             std::thread::spawn(move || {
                 match check_node_status() {
-                    Ok((is_running, sync_status)) => {
+                    Ok((is_running, sync_status, wallet_locked)) => {
                         {
                             if let Ok(mut state) = app_state.lock() {
                                 state.node_is_running = is_running;
                                 state.node_sync_status = sync_status.clone();
+                                state.wallet_needs_unlock = wallet_locked;
                                 state.status_message = "Node status updated".to_string();
                             }
                         }
@@ -373,6 +439,7 @@ async fn main() -> Result<()> {
                         if let Some(window) = window_weak.upgrade() {
                             window.set_node_is_running(is_running);
                             window.set_node_sync_status(SharedString::from(sync_status));
+                            window.set_wallet_needs_unlock(wallet_locked);
                             window.set_status_message(SharedString::from("Node status updated"));
                         }
                     },
@@ -408,7 +475,7 @@ async fn main() -> Result<()> {
             std::thread::spawn(move || {
                 match start_lightning_node() {
                     Ok(()) => {
-                        let status_msg = "Starting Lightning node... Please wait a few moments for it to initialize.";
+                        let status_msg = "Starting Lightning node in a new terminal window. Please wait a few moments for it to initialize.";
                         {
                             if let Ok(mut state) = app_state.lock() {
                                 state.status_message = status_msg.to_string();
@@ -423,11 +490,12 @@ async fn main() -> Result<()> {
                         std::thread::sleep(Duration::from_secs(5));
                         
                         match check_node_status() {
-                            Ok((is_running, sync_status)) => {
+                            Ok((is_running, sync_status, wallet_locked)) => {
                                 {
                                     if let Ok(mut state) = app_state.lock() {
                                         state.node_is_running = is_running;
                                         state.node_sync_status = sync_status.clone();
+                                        state.wallet_needs_unlock = wallet_locked;
                                         if is_running {
                                             state.status_message = "Lightning node started successfully".to_string();
                                         } else {
@@ -439,6 +507,7 @@ async fn main() -> Result<()> {
                                 if let Some(window) = window_weak.upgrade() {
                                     window.set_node_is_running(is_running);
                                     window.set_node_sync_status(SharedString::from(sync_status));
+                                    window.set_wallet_needs_unlock(wallet_locked);
                                     if is_running {
                                         window.set_status_message(SharedString::from("Lightning node started successfully"));
                                     } else {
@@ -462,6 +531,90 @@ async fn main() -> Result<()> {
                     },
                     Err(e) => {
                         let error_msg = format!("Error starting Lightning node: {}", e);
+                        {
+                            if let Ok(mut state) = app_state.lock() {
+                                state.status_message = error_msg.clone();
+                            }
+                        }
+                        
+                        if let Some(window) = window_weak.upgrade() {
+                            window.set_status_message(SharedString::from(error_msg));
+                        }
+                    }
+                }
+            });
+        });
+    }
+
+    // Handle unlock wallet button
+    {
+        let app_state = app_state.clone();
+        let window_weak = window_weak.clone();
+        window.on_unlock_wallet(move |password| {
+            let app_state = app_state.clone();
+            let window_weak = window_weak.clone();
+            
+            std::thread::spawn(move || {
+                let status_msg = "Attempting to unlock wallet...";
+                {
+                    if let Ok(mut state) = app_state.lock() {
+                        state.status_message = status_msg.to_string();
+                    }
+                }
+                
+                if let Some(window) = window_weak.upgrade() {
+                    window.set_status_message(SharedString::from(status_msg));
+                }
+                
+                match unlock_wallet(&password) {
+                    Ok(success) => {
+                        let (status_msg, wallet_needs_unlock) = if success {
+                            ("Wallet unlocked successfully".to_string(), false)
+                        } else {
+                            ("Failed to unlock wallet. Check your password and try again.".to_string(), true)
+                        };
+                        
+                        {
+                            if let Ok(mut state) = app_state.lock() {
+                                state.status_message = status_msg.clone();
+                                state.wallet_needs_unlock = wallet_needs_unlock;
+                            }
+                        }
+                        
+                        if let Some(window) = window_weak.upgrade() {
+                            window.set_status_message(SharedString::from(status_msg));
+                            window.set_wallet_needs_unlock(wallet_needs_unlock);
+                        }
+                        
+                        // If unlock was successful, update status after a short delay
+                        if success {
+                            std::thread::sleep(Duration::from_secs(1));
+                            
+                            match check_node_status() {
+                                Ok((is_running, sync_status, _)) => {
+                                    {
+                                        if let Ok(mut state) = app_state.lock() {
+                                            state.node_is_running = is_running;
+                                            state.node_sync_status = sync_status.clone();
+                                        }
+                                    }
+                                    
+                                    if let Some(window) = window_weak.upgrade() {
+                                        window.set_node_is_running(is_running);
+                                        window.set_node_sync_status(SharedString::from(sync_status));
+                                    }
+                                },
+                                Err(e) => {
+                                    let error_msg = format!("Error checking node status: {}", e);
+                                    if let Some(window) = window_weak.upgrade() {
+                                        window.set_status_message(SharedString::from(error_msg));
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    Err(e) => {
+                        let error_msg = format!("Error unlocking wallet: {}", e);
                         {
                             if let Ok(mut state) = app_state.lock() {
                                 state.status_message = error_msg.clone();
@@ -766,6 +919,66 @@ async fn main() -> Result<()> {
         });
     }
 
+    // Set up a timer to regularly check node status
+    {
+        let app_state = app_state.clone();
+        let window_weak = window_weak.clone();
+        spawn_ui_timer(&window, Duration::from_secs(5), move || {
+            match check_node_status() {
+                Ok((is_running, sync_status, wallet_locked)) => {
+                    {
+                        if let Ok(mut state) = app_state.lock() {
+                            // Only update if status changed
+                            if state.node_is_running != is_running || 
+                               state.node_sync_status != sync_status ||
+                               state.wallet_needs_unlock != wallet_locked {
+                                
+                                state.node_is_running = is_running;
+                                state.node_sync_status = sync_status.clone();
+                                state.wallet_needs_unlock = wallet_locked;
+                                
+                                // Update status message if wallet became locked
+                                if wallet_locked {
+                                    state.status_message = "Lightning wallet is locked. Please unlock it with your wallet password.".to_string();
+                                }
+                            }
+                        }
+                    }
+                    
+                    if let Some(window) = window_weak.upgrade() {
+                        window.set_node_is_running(is_running);
+                        window.set_node_sync_status(SharedString::from(sync_status));
+                        window.set_wallet_needs_unlock(wallet_locked);
+                        
+                        // Update status message if wallet is locked
+                        if wallet_locked {
+                            window.set_status_message(SharedString::from(
+                                "Lightning wallet is locked. Please unlock it with your wallet password."
+                            ));
+                        }
+                    }
+                },
+                Err(_) => {
+                    {
+                        if let Ok(mut state) = app_state.lock() {
+                            if state.node_is_running {
+                                state.node_is_running = false;
+                                state.node_sync_status = "Offline".to_string();
+                                state.wallet_needs_unlock = false;
+                            }
+                        }
+                    }
+                    
+                    if let Some(window) = window_weak.upgrade() {
+                        window.set_node_is_running(false);
+                        window.set_node_sync_status(SharedString::from("Offline"));
+                        window.set_wallet_needs_unlock(false);
+                    }
+                }
+            }
+        });
+    }
+
     // Set up invoice checking timer
     {
         let app_state = app_state.clone();
@@ -822,48 +1035,6 @@ async fn main() -> Result<()> {
                         invoices_clone,
                     )));
                     window.set_status_message(SharedString::from("Updated invoice states"));
-                }
-            }
-        });
-    }
-
-    // Set up node status checking timer
-    {
-        let app_state = app_state.clone();
-        let window_weak = window_weak.clone();
-        spawn_ui_timer(&window, Duration::from_secs(30), move || {
-            match check_node_status() {
-                Ok((is_running, sync_status)) => {
-                    {
-                        if let Ok(mut state) = app_state.lock() {
-                            // Only update if status changed
-                            if state.node_is_running != is_running || 
-                               state.node_sync_status != sync_status {
-                                state.node_is_running = is_running;
-                                state.node_sync_status = sync_status.clone();
-                            }
-                        }
-                    }
-                    
-                    if let Some(window) = window_weak.upgrade() {
-                        window.set_node_is_running(is_running);
-                        window.set_node_sync_status(SharedString::from(sync_status));
-                    }
-                },
-                Err(_) => {
-                    {
-                        if let Ok(mut state) = app_state.lock() {
-                            if state.node_is_running {
-                                state.node_is_running = false;
-                                state.node_sync_status = "Offline".to_string();
-                            }
-                        }
-                    }
-                    
-                    if let Some(window) = window_weak.upgrade() {
-                        window.set_node_is_running(false);
-                        window.set_node_sync_status(SharedString::from("Offline"));
-                    }
                 }
             }
         });
