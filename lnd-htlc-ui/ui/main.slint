@@ -14,17 +14,76 @@ component InvoiceItem inherits Rectangle {
     in property <bool> is-settled;
     callback settle-clicked();
 
+    height: 120px;
+    background: #ffffff;
+    border-radius: 8px;
+    border-width: 1px;
+    border-color: #e0e0e0;
+
     VerticalBox {
+        padding: 12px;
+        spacing: 4px;
+
+        HorizontalLayout {
+            spacing: 8px;
+            Text {
+                text: "Amount:";
+                font-weight: 600;
+                color: #333333;
+            }
+            Text {
+                text: invoice.amount + " sats";
+                color: #1a73e8;
+                font-weight: 500;
+            }
+            Rectangle { }  // Spacer
+            Text {
+                text: "Status:";
+                font-weight: 600;
+                color: #333333;
+            }
+            Text {
+                text: invoice.state;
+                color: invoice.state == "PENDING" ? #f29900 :
+                       invoice.state == "ACCEPTED" ? #1e8e3e : 
+                       invoice.state == "SETTLED" ? #188038 : #333333;
+                font-weight: 500;
+            }
+        }
+
+        if invoice.memo != "": Text {
+            text: "Memo: " + invoice.memo;
+            color: #555555;
+        }
+
         Text {
             text: "BOLT11: " + invoice.bolt11;
             wrap: word-wrap;
+            color: #666666;
+            font-size: 13px;
         }
-        Text { text: "Hash: " + invoice.hash; }
-        Text { text: "Amount: " + invoice.amount + " sats"; }
-        Text { text: "Memo: " + invoice.memo; }
-        Text { text: "State: " + invoice.state; }
-        if (!is-settled && invoice.state == "ACCEPTED"): Button {
-            text: "Settle with Preimage";
+
+        Text {
+            text: "Hash: " + invoice.hash;
+            color: #666666;
+            font-size: 13px;
+        }
+
+        if (!is-settled && invoice.state == "ACCEPTED"): TouchArea {
+            height: 36px;
+            Rectangle {
+                background: #1a73e8;
+                border-radius: 4px;
+                height: 100%;
+
+                Text {
+                    text: "Settle with Preimage";
+                    color: white;
+                    font-weight: 500;
+                    horizontal-alignment: center;
+                    vertical-alignment: center;
+                }
+            }
             clicked => { settle-clicked(); }
         }
     }
@@ -32,8 +91,9 @@ component InvoiceItem inherits Rectangle {
 
 export component MainWindow inherits Window {
     title: "LND HTLC Manager";
-    min-width: 600px;
-    min-height: 400px;
+    min-width: 800px;
+    min-height: 600px;
+    background: #f5f5f5;
 
     callback create-invoice(string, string, string); // preimage, amount, memo
     callback check-invoice(string); // hash
@@ -41,45 +101,90 @@ export component MainWindow inherits Window {
     
     in property <[Invoice]> invoices: [];
     in property <string> status-message;
+    property <bool> has-error: status-message != "" && (status-message == "Error" || status-message == "Error: ");
 
     VerticalBox {
-        padding: 10px;
+        padding: 16px;
+        spacing: 16px;
 
         // Create Invoice Section
         Rectangle {
-            border-radius: 4px;
-            border-width: 1px;
-            border-color: #ccc;
-            background: #f5f5f5;
+            height: 200px;
+            border-radius: 8px;
+            background: white;
+            drop-shadow-color: #00000022;
+            drop-shadow-offset-x: 0px;
+            drop-shadow-offset-y: 2px;
+            drop-shadow-blur: 4px;
+
             VerticalBox {
-                padding: 10px;
+                padding: 16px;
+                spacing: 16px;
+
                 Text {
                     text: "Create Custom Invoice";
-                    font-size: 16px;
-                    font-weight: 700;
+                    font-size: 20px;
+                    font-weight: 600;
+                    color: #202124;
                 }
-                VerticalBox {
-                    spacing: 10px;
-                    HorizontalLayout {
-                        spacing: 10px;
-                        Text { text: "Preimage:"; }
-                        preimage := LineEdit { placeholder-text: "Enter preimage (hex)"; }
+
+                GridLayout {
+                    spacing: 12px;
+                    padding: 8px;
+                    Row {
+                        Text {
+                            text: "Preimage:";
+                            color: #202124;
+                            font-weight: 500;
+                        }
+                        preimage := LineEdit {
+                            placeholder-text: "Enter preimage (hex)";
+                            height: 36px;
+                        }
                     }
-                    HorizontalLayout {
-                        spacing: 10px;
-                        Text { text: "Amount (sats):"; }
-                        amount := LineEdit { 
-                            placeholder-text: "1000";
+                    Row {
+                        Text {
+                            text: "Amount:";
+                            color: #202124;
+                            font-weight: 500;
+                        }
+                        amount := LineEdit {
+                            placeholder-text: "Enter amount in sats";
+                            height: 36px;
                             input-type: number;
                         }
                     }
-                    HorizontalLayout {
-                        spacing: 10px;
-                        Text { text: "Memo:"; }
-                        memo := LineEdit { placeholder-text: "Enter memo"; }
+                    Row {
+                        Text {
+                            text: "Memo:";
+                            color: #202124;
+                            font-weight: 500;
+                        }
+                        memo := LineEdit {
+                            placeholder-text: "Enter memo (optional)";
+                            height: 36px;
+                        }
                     }
-                    Button {
-                        text: "Create Invoice";
+                }
+
+                HorizontalLayout {
+                    alignment: end;
+                    TouchArea {
+                        width: 120px;
+                        height: 36px;
+                        Rectangle {
+                            background: #1a73e8;
+                            border-radius: 4px;
+                            height: 100%;
+
+                            Text {
+                                text: "Create Invoice";
+                                color: white;
+                                font-weight: 500;
+                                horizontal-alignment: center;
+                                vertical-alignment: center;
+                            }
+                        }
                         clicked => {
                             root.create-invoice(preimage.text, amount.text, memo.text);
                         }
@@ -90,31 +195,48 @@ export component MainWindow inherits Window {
 
         // Status Message
         if status-message != "": Rectangle {
-            background: #ff000022;
-            Text {
-                text: status-message;
-                color: #aa0000;
+            height: 48px;
+            background: root.has-error ? #fce8e6 : #e6f4ea;
+            border-radius: 4px;
+
+            HorizontalLayout {
+                padding: 12px;
+                spacing: 8px;
+                alignment: center;
+
+                Text {
+                    text: status-message;
+                    color: root.has-error ? #c5221f : #137333;
+                    font-weight: 500;
+                    vertical-alignment: center;
+                }
             }
         }
 
         // Invoices List
         Rectangle {
-            border-radius: 4px;
-            border-width: 1px;
-            border-color: #ccc;
-            background: #f5f5f5;
             vertical-stretch: 1;
+            border-radius: 8px;
+            background: white;
+            drop-shadow-color: #00000022;
+            drop-shadow-offset-x: 0px;
+            drop-shadow-offset-y: 2px;
+            drop-shadow-blur: 4px;
 
             VerticalBox {
-                padding: 10px;
+                padding: 16px;
+
                 Text {
                     text: "Invoices";
-                    font-size: 16px;
-                    font-weight: 700;
+                    font-size: 20px;
+                    font-weight: 600;
+                    color: #202124;
                 }
+
                 ScrollView {
                     VerticalBox {
-                        spacing: 10px;
+                        padding: 8px;
+                        spacing: 12px;
                         for invoice in invoices: InvoiceItem {
                             invoice: invoice;
                             is-settled: invoice.state == "SETTLED";
