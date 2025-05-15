@@ -54,9 +54,12 @@ fn run_lncli(args: &[&str]) -> Result<String> {
 async fn create_invoice(
     app_state: Arc<Mutex<AppState>>,
     preimage: String,
-    amount: i64,
+    amount_str: String,
     memo: String,
 ) -> Result<()> {
+    // Parse amount string to i64
+    let amount = amount_str.parse::<i64>().map_err(|_| anyhow!("Invalid amount"))?;
+
     let hash = {
         let preimage_bytes = hex::decode(&preimage)?;
         let hash = Sha256::digest(&preimage_bytes);
@@ -139,10 +142,10 @@ async fn main() -> Result<()> {
 
     // Handle invoice creation
     let create_state = app_state.clone();
-    window.on_create_invoice(move |preimage, amount, memo| {
+    window.on_create_invoice(move |preimage, amount_str, memo| {
         let state = create_state.clone();
         tokio::spawn(async move {
-            if let Err(e) = create_invoice(state.clone(), preimage.to_string(), amount as i64, memo.to_string()).await {
+            if let Err(e) = create_invoice(state.clone(), preimage.to_string(), amount_str.to_string(), memo.to_string()).await {
                 let mut state = state.lock().await;
                 state.status_message = format!("Error: {}", e);
             }

@@ -35,7 +35,7 @@ export component MainWindow inherits Window {
     min-width: 600px;
     min-height: 400px;
 
-    callback create-invoice(string, int, string); // preimage, amount, memo
+    callback create-invoice(string, string, string); // preimage, amount, memo
     callback check-invoice(string); // hash
     callback settle-invoice(string, string); // hash, preimage
     
@@ -46,24 +46,43 @@ export component MainWindow inherits Window {
         padding: 10px;
 
         // Create Invoice Section
-        GroupBox {
-            title: "Create Custom Invoice";
+        Rectangle {
+            border-radius: 4px;
+            border-width: 1px;
+            border-color: #ccc;
+            background: #f5f5f5;
             VerticalBox {
-                spacing: 10px;
-                HorizontalLayout {
-                    spacing: 10px;
-                    Text { text: "Amount (sats):"; }
-                    amount := LineEdit { placeholder-text: "1000"; }
+                padding: 10px;
+                Text {
+                    text: "Create Custom Invoice";
+                    font-size: 16px;
+                    font-weight: 700;
                 }
-                HorizontalLayout {
+                VerticalBox {
                     spacing: 10px;
-                    Text { text: "Memo:"; }
-                    memo := LineEdit { placeholder-text: "Enter memo"; }
-                }
-                Button {
-                    text: "Create Invoice";
-                    clicked => {
-                        create-invoice(preimage.text, amount.text.to-float(), memo.text);
+                    HorizontalLayout {
+                        spacing: 10px;
+                        Text { text: "Preimage:"; }
+                        preimage := LineEdit { placeholder-text: "Enter preimage (hex)"; }
+                    }
+                    HorizontalLayout {
+                        spacing: 10px;
+                        Text { text: "Amount (sats):"; }
+                        amount := LineEdit { 
+                            placeholder-text: "1000";
+                            input-type: number;
+                        }
+                    }
+                    HorizontalLayout {
+                        spacing: 10px;
+                        Text { text: "Memo:"; }
+                        memo := LineEdit { placeholder-text: "Enter memo"; }
+                    }
+                    Button {
+                        text: "Create Invoice";
+                        clicked => {
+                            root.create-invoice(preimage.text, amount.text, memo.text);
+                        }
                     }
                 }
             }
@@ -71,25 +90,37 @@ export component MainWindow inherits Window {
 
         // Status Message
         if status-message != "": Rectangle {
-            background: status-message.starts-with("Error") ? #ff000022 : #00ff0022;
+            background: #ff000022;
             Text {
                 text: status-message;
-                color: status-message.starts-with("Error") ? #aa0000 : #007700;
+                color: #aa0000;
             }
         }
 
         // Invoices List
-        GroupBox {
-            title: "Invoices";
+        Rectangle {
+            border-radius: 4px;
+            border-width: 1px;
+            border-color: #ccc;
+            background: #f5f5f5;
             vertical-stretch: 1;
-            ScrollView {
-                VerticalBox {
-                    spacing: 10px;
-                    for invoice in invoices: InvoiceItem {
-                        invoice: invoice;
-                        is-settled: invoice.state == "SETTLED";
-                        settle-clicked => {
-                            settle-invoice(invoice.hash, invoice.preimage);
+
+            VerticalBox {
+                padding: 10px;
+                Text {
+                    text: "Invoices";
+                    font-size: 16px;
+                    font-weight: 700;
+                }
+                ScrollView {
+                    VerticalBox {
+                        spacing: 10px;
+                        for invoice in invoices: InvoiceItem {
+                            invoice: invoice;
+                            is-settled: invoice.state == "SETTLED";
+                            settle-clicked => {
+                                root.settle-invoice(invoice.hash, invoice.preimage);
+                            }
                         }
                     }
                 }
