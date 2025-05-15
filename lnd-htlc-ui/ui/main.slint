@@ -9,6 +9,38 @@ struct Invoice {
     state: string,
 }
 
+component ActionButton inherits Rectangle {
+    callback clicked();
+    in property <string> text;
+    in property <bool> is-active: false;
+    
+    height: 40px;
+    border-radius: 4px;
+    background: is-active ? #5294e2 : #2a2a2a;
+
+    TouchArea {
+        clicked => { root.clicked(); }
+    }
+
+    Text {
+        text: root.text;
+        color: is-active ? white : #e0e0e0;
+        font-weight: 500;
+        horizontal-alignment: center;
+        vertical-alignment: center;
+    }
+
+    states [
+        hover when ta.has-hover: {
+            background: is-active ? #5294e2 : #3a3a3a;
+        }
+    ]
+
+    ta := TouchArea {
+        clicked => { root.clicked(); }
+    }
+}
+
 component InvoiceItem inherits Rectangle {
     in property <Invoice> invoice;
     in property <bool> is-settled;
@@ -90,158 +122,626 @@ component InvoiceItem inherits Rectangle {
 }
 
 export component MainWindow inherits Window {
-    title: "LND HTLC Manager";
-    min-width: 800px;
+    title: "Lightning Network Manager";
+    min-width: 900px;
     min-height: 600px;
     background: #202020;
 
-    callback create-invoice(string, string, string); // preimage, amount, memo
-    callback check-invoice(string); // hash
-    callback settle-invoice(string, string); // hash, preimage
+    // Main callbacks
+    callback manage-channels();
+    callback create-channel();
+    callback generate-xh();
+    callback create-custom-invoice(string, string, string); // preimage, amount, memo
+    callback pay-custom-invoice(string); // bolt11
+    callback claim-custom-invoice(string, string); // hash, preimage
+    callback create-standard-invoice(string, int); // memo, amount
+    
+    // Special callback for updating preimage/hash display
+    callback update-preimage-hash(string, string); // preimage, hash
+    
+    // Action page tracking
+    property <int> active-page: 0; // 0 = manage channels, 1 = create channel, 2 = generate x/h, 3 = custom invoice, 4 = pay invoice, 5 = claim invoice, 6 = standard invoice
     
     in property <[Invoice]> invoices: [];
     in property <string> status-message;
     property <bool> has-error: status-message != "" && (status-message == "Error" || status-message == "Error: ");
+    
+    // Local storage for preimage and hash
+    property <string> current-preimage: "";
+    property <string> current-hash: "";
+    
+    // Handle the update callback
+    update-preimage-hash(preimage, hash) => {
+        root.current-preimage = preimage;
+        root.current-hash = hash;
+    }
 
-    VerticalBox {
-        padding: 16px;
-        spacing: 16px;
+    HorizontalLayout {
+        padding: 0px;
+        spacing: 0px;
 
-        // Create Invoice Section
+        // Sidebar
         Rectangle {
-            height: 200px;
-            border-radius: 8px;
-            background: #2a2a2a;
-            drop-shadow-color: #00000044;
-            drop-shadow-offset-x: 0px;
-            drop-shadow-offset-y: 2px;
-            drop-shadow-blur: 4px;
-
+            width: 220px;
+            background: #1a1a1a;
+            
             VerticalBox {
                 padding: 16px;
-                spacing: 16px;
-
+                spacing: 12px;
+                
                 Text {
-                    text: "Create Custom Invoice";
-                    font-size: 20px;
-                    font-weight: 600;
+                    text: "Lightning Network";
+                    font-size: 18px;
+                    font-weight: 700;
                     color: #e0e0e0;
                 }
-
-                GridLayout {
-                    spacing: 12px;
-                    padding: 8px;
-                    Row {
-                        Text {
-                            text: "Preimage:";
-                            color: #e0e0e0;
-                            font-weight: 500;
-                        }
-                        preimage := LineEdit {
-                            placeholder-text: "Enter preimage (hex)";
-                            height: 36px;
-                        }
-                    }
-                    Row {
-                        Text {
-                            text: "Amount:";
-                            color: #e0e0e0;
-                            font-weight: 500;
-                        }
-                        amount := LineEdit {
-                            placeholder-text: "Enter amount in sats";
-                            height: 36px;
-                            input-type: number;
-                        }
-                    }
-                    Row {
-                        Text {
-                            text: "Memo:";
-                            color: #e0e0e0;
-                            font-weight: 500;
-                        }
-                        memo := LineEdit {
-                            placeholder-text: "Enter memo (optional)";
-                            height: 36px;
-                        }
+                
+                Rectangle { height: 1px; background: #3a3a3a; }
+                
+                ActionButton {
+                    text: "Manage Channels";
+                    is-active: root.active-page == 0;
+                    clicked => {
+                        root.active-page = 0;
+                        root.manage-channels();
                     }
                 }
-
-                HorizontalLayout {
-                    alignment: end;
-                    TouchArea {
-                        width: 120px;
-                        height: 36px;
-                        Rectangle {
-                            background: #5294e2;
-                            border-radius: 4px;
-                            height: 100%;
-
-                            Text {
-                                text: "Create Invoice";
-                                color: white;
-                                font-weight: 500;
-                                horizontal-alignment: center;
-                                vertical-alignment: center;
-                            }
-                        }
-                        clicked => {
-                            root.create-invoice(preimage.text, amount.text, memo.text);
-                        }
+                
+                ActionButton {
+                    text: "Create New Channel";
+                    is-active: root.active-page == 1;
+                    clicked => {
+                        root.active-page = 1;
+                        root.create-channel();
                     }
                 }
-            }
-        }
-
-        // Status Message
-        if status-message != "": Rectangle {
-            height: 48px;
-            background: root.has-error ? #66382c : #2c5142;
-            border-radius: 4px;
-
-            HorizontalLayout {
-                padding: 12px;
-                spacing: 8px;
-                alignment: center;
-
-                Text {
-                    text: status-message;
-                    color: root.has-error ? #ffb0a3 : #a3ffb0;
-                    font-weight: 500;
-                    vertical-alignment: center;
+                
+                ActionButton {
+                    text: "Generate X/H";
+                    is-active: root.active-page == 2;
+                    clicked => {
+                        root.active-page = 2;
+                        root.generate-xh();
+                    }
                 }
-            }
-        }
-
-        // Invoices List
-        Rectangle {
-            vertical-stretch: 1;
-            border-radius: 8px;
-            background: #2a2a2a;
-            drop-shadow-color: #00000044;
-            drop-shadow-offset-x: 0px;
-            drop-shadow-offset-y: 2px;
-            drop-shadow-blur: 4px;
-
-            VerticalBox {
-                padding: 16px;
-
+                
+                Rectangle { height: 1px; background: #3a3a3a; }
+                
                 Text {
                     text: "Invoices";
-                    font-size: 20px;
-                    font-weight: 600;
+                    font-size: 16px;
+                    font-weight: 700;
                     color: #e0e0e0;
                 }
+                
+                ActionButton {
+                    text: "Create Custom Invoice";
+                    is-active: root.active-page == 3;
+                    clicked => { root.active-page = 3; }
+                }
+                
+                ActionButton {
+                    text: "Pay Custom Invoice";
+                    is-active: root.active-page == 4;
+                    clicked => { root.active-page = 4; }
+                }
+                
+                ActionButton {
+                    text: "Claim Custom Invoice";
+                    is-active: root.active-page == 5;
+                    clicked => { root.active-page = 5; }
+                }
+                
+                ActionButton {
+                    text: "Create Standard Invoice";
+                    is-active: root.active-page == 6;
+                    clicked => { root.active-page = 6; }
+                }
+            }
+        }
+        
+        // Main Content
+        VerticalBox {
+            padding: 16px;
+            spacing: 16px;
 
-                ScrollView {
-                    VerticalBox {
-                        padding: 8px;
+            // Status Message
+            if status-message != "": Rectangle {
+                height: 48px;
+                background: root.has-error ? #66382c : #2c5142;
+                border-radius: 4px;
+
+                HorizontalLayout {
+                    padding: 12px;
+                    spacing: 8px;
+                    alignment: center;
+
+                    Text {
+                        text: status-message;
+                        color: root.has-error ? #ffb0a3 : #a3ffb0;
+                        font-weight: 500;
+                        vertical-alignment: center;
+                    }
+                }
+            }
+
+            // Dynamic Main Content based on active-page
+            if root.active-page == 0: Rectangle {
+                // Manage Channels
+                background: #2a2a2a;
+                border-radius: 8px;
+                
+                VerticalBox {
+                    padding: 16px;
+                    Text { 
+                        text: "Manage Channels"; 
+                        font-size: 20px;
+                        font-weight: 600;
+                        color: #e0e0e0;
+                    }
+
+                    Text { 
+                        text: "List of active channels will appear here"; 
+                        color: #bbbbbb;
+                    }
+                }
+            }
+            
+            if root.active-page == 1: Rectangle {
+                // Create New Channel
+                background: #2a2a2a;
+                border-radius: 8px;
+                
+                VerticalBox {
+                    padding: 16px;
+                    spacing: 16px;
+                    
+                    Text { 
+                        text: "Create New Channel"; 
+                        font-size: 20px;
+                        font-weight: 600;
+                        color: #e0e0e0;
+                    }
+                    
+                    GridLayout {
                         spacing: 12px;
-                        for invoice in invoices: InvoiceItem {
-                            invoice: invoice;
-                            is-settled: invoice.state == "SETTLED";
-                            settle-clicked => {
-                                root.settle-invoice(invoice.hash, invoice.preimage);
+                        padding: 8px;
+                        Row {
+                            Text {
+                                text: "Node Public Key:";
+                                color: #e0e0e0;
+                                font-weight: 500;
+                            }
+                            node-pubkey := LineEdit {
+                                placeholder-text: "Enter node public key";
+                                height: 36px;
+                            }
+                        }
+                        Row {
+                            Text {
+                                text: "Amount (sats):";
+                                color: #e0e0e0;
+                                font-weight: 500;
+                            }
+                            channel-amount := LineEdit {
+                                placeholder-text: "Enter amount in sats";
+                                height: 36px;
+                                input-type: number;
+                            }
+                        }
+                    }
+                    
+                    HorizontalLayout {
+                        alignment: end;
+                        TouchArea {
+                            width: 140px;
+                            height: 36px;
+                            Rectangle {
+                                background: #5294e2;
+                                border-radius: 4px;
+                                height: 100%;
+
+                                Text {
+                                    text: "Create Channel";
+                                    color: white;
+                                    font-weight: 500;
+                                    horizontal-alignment: center;
+                                    vertical-alignment: center;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            
+            if root.active-page == 2: Rectangle {
+                // Generate X/H
+                background: #2a2a2a;
+                border-radius: 8px;
+                
+                VerticalBox {
+                    padding: 16px;
+                    spacing: 16px;
+                    
+                    Text { 
+                        text: "Generate Preimage (X) and Hash (H)"; 
+                        font-size: 20px;
+                        font-weight: 600;
+                        color: #e0e0e0;
+                    }
+                    
+                    Rectangle {
+                        height: 60px;
+                        background: #1a1a1a;
+                        border-radius: 4px;
+                        padding: 8px;
+                        
+                        VerticalLayout {
+                            Text { 
+                                text: "Preimage (X):"; 
+                                color: #bbbbbb;
+                                font-size: 14px;
+                            }
+                            preimage-output := Text { 
+                                text: root.current-preimage; 
+                                color: #e0e0e0;
+                                font-family: "monospace";
+                            }
+                        }
+                    }
+                    
+                    Rectangle {
+                        height: 60px;
+                        background: #1a1a1a;
+                        border-radius: 4px;
+                        padding: 8px;
+                        
+                        VerticalLayout {
+                            Text { 
+                                text: "Hash (H):"; 
+                                color: #bbbbbb;
+                                font-size: 14px;
+                            }
+                            hash-output := Text { 
+                                text: root.current-hash; 
+                                color: #e0e0e0;
+                                font-family: "monospace";
+                            }
+                        }
+                    }
+                    
+                    HorizontalLayout {
+                        alignment: end;
+                        TouchArea {
+                            width: 140px;
+                            height: 36px;
+                            Rectangle {
+                                background: #5294e2;
+                                border-radius: 4px;
+                                height: 100%;
+
+                                Text {
+                                    text: "Generate";
+                                    color: white;
+                                    font-weight: 500;
+                                    horizontal-alignment: center;
+                                    vertical-alignment: center;
+                                }
+                            }
+                            clicked => { root.generate-xh(); }
+                        }
+                    }
+                }
+            }
+            
+            if root.active-page == 3: Rectangle {
+                // Create Custom Invoice
+                background: #2a2a2a;
+                border-radius: 8px;
+                
+                VerticalBox {
+                    padding: 16px;
+                    spacing: 16px;
+                    
+                    Text { 
+                        text: "Create Custom Invoice"; 
+                        font-size: 20px;
+                        font-weight: 600;
+                        color: #e0e0e0;
+                    }
+                    
+                    GridLayout {
+                        spacing: 12px;
+                        padding: 8px;
+                        Row {
+                            Text {
+                                text: "Preimage (hex):";
+                                color: #e0e0e0;
+                                font-weight: 500;
+                            }
+                            preimage := LineEdit {
+                                placeholder-text: "Enter preimage (hex)";
+                                height: 36px;
+                            }
+                        }
+                        Row {
+                            Text {
+                                text: "Amount (sats):";
+                                color: #e0e0e0;
+                                font-weight: 500;
+                            }
+                            amount := LineEdit {
+                                placeholder-text: "Enter amount in sats";
+                                height: 36px;
+                                input-type: number;
+                            }
+                        }
+                        Row {
+                            Text {
+                                text: "Memo:";
+                                color: #e0e0e0;
+                                font-weight: 500;
+                            }
+                            memo := LineEdit {
+                                placeholder-text: "Enter memo (optional)";
+                                height: 36px;
+                            }
+                        }
+                    }
+                    
+                    HorizontalLayout {
+                        alignment: end;
+                        TouchArea {
+                            width: 140px;
+                            height: 36px;
+                            Rectangle {
+                                background: #5294e2;
+                                border-radius: 4px;
+                                height: 100%;
+
+                                Text {
+                                    text: "Create Invoice";
+                                    color: white;
+                                    font-weight: 500;
+                                    horizontal-alignment: center;
+                                    vertical-alignment: center;
+                                }
+                            }
+                            clicked => {
+                                root.create-custom-invoice(preimage.text, amount.text, memo.text);
+                            }
+                        }
+                    }
+                }
+            }
+            
+            if root.active-page == 4: Rectangle {
+                // Pay Custom Invoice
+                background: #2a2a2a;
+                border-radius: 8px;
+                
+                VerticalBox {
+                    padding: 16px;
+                    spacing: 16px;
+                    
+                    Text { 
+                        text: "Pay Custom Invoice"; 
+                        font-size: 20px;
+                        font-weight: 600;
+                        color: #e0e0e0;
+                    }
+                    
+                    GridLayout {
+                        spacing: 12px;
+                        padding: 8px;
+                        Row {
+                            Text {
+                                text: "BOLT11:";
+                                color: #e0e0e0;
+                                font-weight: 500;
+                            }
+                            bolt11 := LineEdit {
+                                placeholder-text: "Enter BOLT11 invoice";
+                                height: 36px;
+                            }
+                        }
+                    }
+                    
+                    HorizontalLayout {
+                        alignment: end;
+                        TouchArea {
+                            width: 140px;
+                            height: 36px;
+                            Rectangle {
+                                background: #5294e2;
+                                border-radius: 4px;
+                                height: 100%;
+
+                                Text {
+                                    text: "Pay Invoice";
+                                    color: white;
+                                    font-weight: 500;
+                                    horizontal-alignment: center;
+                                    vertical-alignment: center;
+                                }
+                            }
+                            clicked => {
+                                root.pay-custom-invoice(bolt11.text);
+                            }
+                        }
+                    }
+                }
+            }
+            
+            if root.active-page == 5: Rectangle {
+                // Claim Custom Invoice
+                background: #2a2a2a;
+                border-radius: 8px;
+                
+                VerticalBox {
+                    padding: 16px;
+                    spacing: 16px;
+                    
+                    Text { 
+                        text: "Claim Custom Invoice"; 
+                        font-size: 20px;
+                        font-weight: 600;
+                        color: #e0e0e0;
+                    }
+                    
+                    GridLayout {
+                        spacing: 12px;
+                        padding: 8px;
+                        Row {
+                            Text {
+                                text: "Hash:";
+                                color: #e0e0e0;
+                                font-weight: 500;
+                            }
+                            hash := LineEdit {
+                                placeholder-text: "Enter payment hash";
+                                height: 36px;
+                            }
+                        }
+                        Row {
+                            Text {
+                                text: "Preimage:";
+                                color: #e0e0e0;
+                                font-weight: 500;
+                            }
+                            claim-preimage := LineEdit {
+                                placeholder-text: "Enter preimage";
+                                height: 36px;
+                            }
+                        }
+                    }
+                    
+                    HorizontalLayout {
+                        alignment: end;
+                        TouchArea {
+                            width: 140px;
+                            height: 36px;
+                            Rectangle {
+                                background: #5294e2;
+                                border-radius: 4px;
+                                height: 100%;
+
+                                Text {
+                                    text: "Claim Invoice";
+                                    color: white;
+                                    font-weight: 500;
+                                    horizontal-alignment: center;
+                                    vertical-alignment: center;
+                                }
+                            }
+                            clicked => {
+                                root.claim-custom-invoice(hash.text, claim-preimage.text);
+                            }
+                        }
+                    }
+                }
+            }
+            
+            if root.active-page == 6: Rectangle {
+                // Create Standard Invoice
+                background: #2a2a2a;
+                border-radius: 8px;
+                
+                VerticalBox {
+                    padding: 16px;
+                    spacing: 16px;
+                    
+                    Text { 
+                        text: "Create Standard Invoice"; 
+                        font-size: 20px;
+                        font-weight: 600;
+                        color: #e0e0e0;
+                    }
+                    
+                    GridLayout {
+                        spacing: 12px;
+                        padding: 8px;
+                        Row {
+                            Text {
+                                text: "Amount (sats):";
+                                color: #e0e0e0;
+                                font-weight: 500;
+                            }
+                            std-amount := LineEdit {
+                                placeholder-text: "Enter amount in sats";
+                                height: 36px;
+                                input-type: number;
+                            }
+                        }
+                        Row {
+                            Text {
+                                text: "Memo:";
+                                color: #e0e0e0;
+                                font-weight: 500;
+                            }
+                            std-memo := LineEdit {
+                                placeholder-text: "Enter memo (optional)";
+                                height: 36px;
+                            }
+                        }
+                    }
+                    
+                    HorizontalLayout {
+                        alignment: end;
+                        TouchArea {
+                            width: 140px;
+                            height: 36px;
+                            Rectangle {
+                                background: #5294e2;
+                                border-radius: 4px;
+                                height: 100%;
+
+                                Text {
+                                    text: "Create Invoice";
+                                    color: white;
+                                    font-weight: 500;
+                                    horizontal-alignment: center;
+                                    vertical-alignment: center;
+                                }
+                            }
+                            clicked => {
+                                root.create-standard-invoice(std-memo.text, std-amount.text.to-float());
+                            }
+                        }
+                    }
+                }
+            }
+
+            // Invoices List (shown on all pages)
+            Rectangle {
+                vertical-stretch: 1;
+                border-radius: 8px;
+                background: #2a2a2a;
+                drop-shadow-color: #00000044;
+                drop-shadow-offset-x: 0px;
+                drop-shadow-offset-y: 2px;
+                drop-shadow-blur: 4px;
+
+                VerticalBox {
+                    padding: 16px;
+
+                    Text {
+                        text: "Recent Invoices";
+                        font-size: 20px;
+                        font-weight: 600;
+                        color: #e0e0e0;
+                    }
+
+                    ScrollView {
+                        VerticalBox {
+                            padding: 8px;
+                            spacing: 12px;
+                            for invoice in invoices: InvoiceItem {
+                                invoice: invoice;
+                                is-settled: invoice.state == "SETTLED";
+                                settle-clicked => {
+                                    root.claim-custom-invoice(invoice.hash, invoice.preimage);
+                                }
                             }
                         }
                     }
