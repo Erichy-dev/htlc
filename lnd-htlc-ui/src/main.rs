@@ -192,26 +192,48 @@ async fn main() -> Result<()> {
             let app_state = app_state.clone();
             let window_weak = window_weak.clone();
             
-            if let Ok(mut state) = app_state.lock() {
-                for invoice in &mut state.invoices {
-                    if invoice.state == "PENDING" {
-                        if let Ok(output) = check_invoice(&invoice.hash) {
-                            if output.contains("\"state\": \"ACCEPTED\"") {
-                                invoice.state = SharedString::from("ACCEPTED");
-                                state.status_message = "Payment received and held!".to_string();
-                            } else if output.contains("\"state\": \"SETTLED\"") {
-                                invoice.state = SharedString::from("SETTLED");
-                                state.status_message = "Payment settled!".to_string();
-                            }
-                        }
+            // First, collect the pending invoices and their hashes
+            let pending_hashes: Vec<String> = {
+                if let Ok(state) = app_state.lock() {
+                    state.invoices
+                        .iter()
+                        .filter(|i| i.state == "PENDING")
+                        .map(|i| i.hash.to_string())
+                        .collect()
+                } else {
+                    return;
+                }
+            };
+
+            // Check each pending invoice
+            let mut updates = Vec::new();
+            for hash in pending_hashes {
+                if let Ok(output) = check_invoice(&hash) {
+                    if output.contains("\"state\": \"ACCEPTED\"") {
+                        updates.push((hash.clone(), "ACCEPTED"));
+                    } else if output.contains("\"state\": \"SETTLED\"") {
+                        updates.push((hash.clone(), "SETTLED"));
                     }
                 }
-                
-                if let Some(window) = window_weak.upgrade() {
-                    window.set_invoices(slint::ModelRc::new(slint::VecModel::from(
-                        state.invoices.clone(),
-                    )));
-                    window.set_status_message(state.status_message.clone().into());
+            }
+
+            // Apply updates in a single lock
+            if !updates.is_empty() {
+                if let Ok(mut state) = app_state.lock() {
+                    for (hash, new_state) in updates {
+                        if let Some(invoice) = state.invoices.iter_mut().find(|i| i.hash == hash) {
+                            invoice.state = SharedString::from(new_state);
+                        }
+                    }
+                    
+                    state.status_message = "Updated invoice states".to_string();
+                    
+                    if let Some(window) = window_weak.upgrade() {
+                        window.set_invoices(slint::ModelRc::new(slint::VecModel::from(
+                            state.invoices.clone(),
+                        )));
+                        window.set_status_message(state.status_message.clone().into());
+                    }
                 }
             }
         });
