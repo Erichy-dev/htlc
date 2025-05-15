@@ -15,10 +15,10 @@ component InvoiceItem inherits Rectangle {
     callback settle-clicked();
 
     height: 120px;
-    background: #ffffff;
+    background: #2a2a2a;
     border-radius: 8px;
     border-width: 1px;
-    border-color: #e0e0e0;
+    border-color: #3a3a3a;
 
     VerticalBox {
         padding: 12px;
@@ -29,50 +29,50 @@ component InvoiceItem inherits Rectangle {
             Text {
                 text: "Amount:";
                 font-weight: 600;
-                color: #333333;
+                color: #e0e0e0;
             }
             Text {
                 text: invoice.amount + " sats";
-                color: #1a73e8;
+                color: #5294e2;
                 font-weight: 500;
             }
             Rectangle { }  // Spacer
             Text {
                 text: "Status:";
                 font-weight: 600;
-                color: #333333;
+                color: #e0e0e0;
             }
             Text {
                 text: invoice.state;
                 color: invoice.state == "PENDING" ? #f29900 :
                        invoice.state == "ACCEPTED" ? #1e8e3e : 
-                       invoice.state == "SETTLED" ? #188038 : #333333;
+                       invoice.state == "SETTLED" ? #20c997 : #e0e0e0;
                 font-weight: 500;
             }
         }
 
         if invoice.memo != "": Text {
             text: "Memo: " + invoice.memo;
-            color: #555555;
+            color: #cccccc;
         }
 
         Text {
             text: "BOLT11: " + invoice.bolt11;
             wrap: word-wrap;
-            color: #666666;
+            color: #bbbbbb;
             font-size: 13px;
         }
 
         Text {
             text: "Hash: " + invoice.hash;
-            color: #666666;
+            color: #bbbbbb;
             font-size: 13px;
         }
 
         if (!is-settled && invoice.state == "ACCEPTED"): TouchArea {
             height: 36px;
             Rectangle {
-                background: #1a73e8;
+                background: #5294e2;
                 border-radius: 4px;
                 height: 100%;
 
@@ -93,7 +93,7 @@ export component MainWindow inherits Window {
     title: "LND HTLC Manager";
     min-width: 800px;
     min-height: 600px;
-    background: #f5f5f5;
+    background: #202020;
 
     callback create-invoice(string, string, string); // preimage, amount, memo
     callback check-invoice(string); // hash
@@ -111,8 +111,8 @@ export component MainWindow inherits Window {
         Rectangle {
             height: 200px;
             border-radius: 8px;
-            background: white;
-            drop-shadow-color: #00000022;
+            background: #2a2a2a;
+            drop-shadow-color: #00000044;
             drop-shadow-offset-x: 0px;
             drop-shadow-offset-y: 2px;
             drop-shadow-blur: 4px;
@@ -125,7 +125,7 @@ export component MainWindow inherits Window {
                     text: "Create Custom Invoice";
                     font-size: 20px;
                     font-weight: 600;
-                    color: #202124;
+                    color: #e0e0e0;
                 }
 
                 GridLayout {
@@ -134,7 +134,7 @@ export component MainWindow inherits Window {
                     Row {
                         Text {
                             text: "Preimage:";
-                            color: #202124;
+                            color: #e0e0e0;
                             font-weight: 500;
                         }
                         preimage := LineEdit {
@@ -145,7 +145,7 @@ export component MainWindow inherits Window {
                     Row {
                         Text {
                             text: "Amount:";
-                            color: #202124;
+                            color: #e0e0e0;
                             font-weight: 500;
                         }
                         amount := LineEdit {
@@ -157,7 +157,7 @@ export component MainWindow inherits Window {
                     Row {
                         Text {
                             text: "Memo:";
-                            color: #202124;
+                            color: #e0e0e0;
                             font-weight: 500;
                         }
                         memo := LineEdit {
@@ -173,7 +173,7 @@ export component MainWindow inherits Window {
                         width: 120px;
                         height: 36px;
                         Rectangle {
-                            background: #1a73e8;
+                            background: #5294e2;
                             border-radius: 4px;
                             height: 100%;
 
@@ -196,7 +196,7 @@ export component MainWindow inherits Window {
         // Status Message
         if status-message != "": Rectangle {
             height: 48px;
-            background: root.has-error ? #fce8e6 : #e6f4ea;
+            background: root.has-error ? #66382c : #2c5142;
             border-radius: 4px;
 
             HorizontalLayout {
@@ -206,7 +206,7 @@ export component MainWindow inherits Window {
 
                 Text {
                     text: status-message;
-                    color: root.has-error ? #c5221f : #137333;
+                    color: root.has-error ? #ffb0a3 : #a3ffb0;
                     font-weight: 500;
                     vertical-alignment: center;
                 }
@@ -217,8 +217,8 @@ export component MainWindow inherits Window {
         Rectangle {
             vertical-stretch: 1;
             border-radius: 8px;
-            background: white;
-            drop-shadow-color: #00000022;
+            background: #2a2a2a;
+            drop-shadow-color: #00000044;
             drop-shadow-offset-x: 0px;
             drop-shadow-offset-y: 2px;
             drop-shadow-blur: 4px;
@@ -230,7 +230,7 @@ export component MainWindow inherits Window {
                     text: "Invoices";
                     font-size: 20px;
                     font-weight: 600;
-                    color: #202124;
+                    color: #e0e0e0;
                 }
 
                 ScrollView {
