@@ -9,7 +9,7 @@ lncli --network testnet walletbalance
 
 lncli --network testnet listpeers
 
-lncli --network=testnet get <pub-key>
+lncli --network testnet get <pub-key>
 
 lncli --network testnet connect <node-pub-key@ip:port>
 
@@ -43,7 +43,7 @@ Write-Host "Hash     (H): $H"
 ```
 
 ```bash
-lncli --network=testnet addholdinvoice $H --amt=1000 --memo="My custom invoice"
+lncli --network testnet addholdinvoice $H --amt=1000 --memo="My custom invoice"
 
-lncli --network=testnet lookupinvoice $H
+lncli --network testnet lookupinvoice $H
 ```
