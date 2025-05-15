@@ -1,10 +1,10 @@
 use anyhow::{anyhow, Result};
 use rand::RngCore;
 use sha2::{Digest, Sha256};
-use slint::SharedString;
+use slint::{SharedString, Timer, TimerMode};
 use std::process::Command;
-use std::sync::Arc;
-use tokio::sync::Mutex;
+use std::sync::{Arc, Mutex};
+use std::time::Duration;
 
 slint::include_modules!();
 
@@ -51,14 +51,13 @@ fn run_lncli(args: &[&str]) -> Result<String> {
     Ok(String::from_utf8(output.stdout)?)
 }
 
-async fn create_invoice(
-    app_state: Arc<Mutex<AppState>>,
+fn create_invoice(
     preimage: String,
     amount_str: String,
     memo: String,
-) -> Result<()> {
+) -> Result<(String, String, i32)> {
     // Parse amount string to i64
-    let amount = amount_str.parse::<i64>().map_err(|_| anyhow!("Invalid amount"))?;
+    let amount = amount_str.parse::<i32>().map_err(|_| anyhow!("Invalid amount"))?;
 
     let hash = {
         let preimage_bytes = hex::decode(&preimage)?;
@@ -75,109 +74,148 @@ async fn create_invoice(
         &memo,
     ])?;
 
-    let mut state = app_state.lock().await;
-    state.invoices.push(Invoice {
-        bolt11: SharedString::from(output.trim()),
-        hash: SharedString::from(hash),
-        preimage: SharedString::from(preimage),
-        amount,
-        memo: SharedString::from(memo),
-        state: SharedString::from("PENDING"),
+    Ok((output.trim().to_string(), hash, amount))
+}
+
+fn check_invoice(hash: &str) -> Result<String> {
+    let output = run_lncli(&["lookupinvoice", hash])?;
+    Ok(output)
+}
+
+fn settle_invoice(hash: &str, preimage: &str) -> Result<()> {
+    run_lncli(&["settleinvoice", "--preimage", preimage])?;
+    Ok(())
+}
+
+fn spawn_ui_timer<F>(window: &MainWindow, interval: Duration, callback: F)
+where
+    F: Fn() + 'static,
+{
+    let timer = Timer::default();
+    timer.start(TimerMode::Repeated, interval, move || {
+        callback();
     });
-    state.status_message = format!("Created invoice for {} sats", amount);
-
-    Ok(())
-}
-
-async fn check_invoice(app_state: Arc<Mutex<AppState>>, hash: String) -> Result<()> {
-    let output = run_lncli(&["lookupinvoice", &hash])?;
-    
-    let mut state = app_state.lock().await;
-    if let Some(invoice) = state.invoices.iter_mut().find(|i| i.hash == hash) {
-        if output.contains("\"state\": \"ACCEPTED\"") {
-            invoice.state = SharedString::from("ACCEPTED");
-            state.status_message = "Payment received and held!".to_string();
-        } else if output.contains("\"state\": \"SETTLED\"") {
-            invoice.state = SharedString::from("SETTLED");
-            state.status_message = "Payment settled!".to_string();
-        }
-    }
-
-    Ok(())
-}
-
-async fn settle_invoice(app_state: Arc<Mutex<AppState>>, hash: String, preimage: String) -> Result<()> {
-    run_lncli(&["settleinvoice", "--preimage", &preimage])?;
-
-    let mut state = app_state.lock().await;
-    if let Some(invoice) = state.invoices.iter_mut().find(|i| i.hash == hash) {
-        invoice.state = SharedString::from("SETTLED");
-        state.status_message = "Invoice settled successfully!".to_string();
-    }
-
-    Ok(())
 }
 
 #[tokio::main]
 async fn main() -> Result<()> {
     let app_state = Arc::new(Mutex::new(AppState::default()));
     let window = MainWindow::new()?;
-    
-    // Set up invoice checking interval
-    let check_state = app_state.clone();
-    tokio::spawn(async move {
-        loop {
-            let state = check_state.lock().await;
-            for invoice in &state.invoices {
-                if invoice.state == "PENDING" {
-                    drop(state);
-                    let _ = check_invoice(check_state.clone(), invoice.hash.to_string()).await;
-                    break;
-                }
-            }
-            drop(state);
-            tokio::time::sleep(tokio::time::Duration::from_secs(5)).await;
-        }
-    });
+    let window_weak = window.as_weak();
 
     // Handle invoice creation
-    let create_state = app_state.clone();
-    window.on_create_invoice(move |preimage, amount_str, memo| {
-        let state = create_state.clone();
-        tokio::spawn(async move {
-            if let Err(e) = create_invoice(state.clone(), preimage.to_string(), amount_str.to_string(), memo.to_string()).await {
-                let mut state = state.lock().await;
-                state.status_message = format!("Error: {}", e);
-            }
+    {
+        let app_state = app_state.clone();
+        let window_weak = window_weak.clone();
+        window.on_create_invoice(move |preimage, amount, memo| {
+            let app_state = app_state.clone();
+            let window_weak = window_weak.clone();
+            
+            std::thread::spawn(move || {
+                match create_invoice(preimage.to_string(), amount.to_string(), memo.to_string()) {
+                    Ok((bolt11, hash, amount)) => {
+                        if let Ok(mut state) = app_state.lock() {
+                            state.invoices.push(Invoice {
+                                bolt11: SharedString::from(bolt11),
+                                hash: SharedString::from(hash.clone()),
+                                preimage: SharedString::from(preimage.to_string()),
+                                amount,
+                                memo: SharedString::from(memo.to_string()),
+                                state: SharedString::from("PENDING"),
+                            });
+                            state.status_message = format!("Created invoice for {} sats", amount);
+                            
+                            if let Some(window) = window_weak.upgrade() {
+                                window.set_invoices(slint::ModelRc::new(slint::VecModel::from(
+                                    state.invoices.clone(),
+                                )));
+                                window.set_status_message(state.status_message.clone().into());
+                            }
+                        }
+                    }
+                    Err(e) => {
+                        if let Ok(mut state) = app_state.lock() {
+                            state.status_message = format!("Error: {}", e);
+                            if let Some(window) = window_weak.upgrade() {
+                                window.set_status_message(state.status_message.clone().into());
+                            }
+                        }
+                    }
+                }
+            });
         });
-    });
+    }
 
     // Handle invoice settlement
-    let settle_state = app_state.clone();
-    window.on_settle_invoice(move |hash, preimage| {
-        let state = settle_state.clone();
-        tokio::spawn(async move {
-            if let Err(e) = settle_invoice(state.clone(), hash.to_string(), preimage.to_string()).await {
-                let mut state = state.lock().await;
-                state.status_message = format!("Error: {}", e);
+    {
+        let app_state = app_state.clone();
+        let window_weak = window_weak.clone();
+        window.on_settle_invoice(move |hash, preimage| {
+            let app_state = app_state.clone();
+            let window_weak = window_weak.clone();
+            
+            std::thread::spawn(move || {
+                match settle_invoice(&hash, &preimage) {
+                    Ok(()) => {
+                        if let Ok(mut state) = app_state.lock() {
+                            if let Some(invoice) = state.invoices.iter_mut().find(|i| i.hash == hash) {
+                                invoice.state = SharedString::from("SETTLED");
+                            }
+                            state.status_message = "Invoice settled successfully!".to_string();
+                            
+                            if let Some(window) = window_weak.upgrade() {
+                                window.set_invoices(slint::ModelRc::new(slint::VecModel::from(
+                                    state.invoices.clone(),
+                                )));
+                                window.set_status_message(state.status_message.clone().into());
+                            }
+                        }
+                    }
+                    Err(e) => {
+                        if let Ok(mut state) = app_state.lock() {
+                            state.status_message = format!("Error: {}", e);
+                            if let Some(window) = window_weak.upgrade() {
+                                window.set_status_message(state.status_message.clone().into());
+                            }
+                        }
+                    }
+                }
+            });
+        });
+    }
+
+    // Set up invoice checking timer
+    {
+        let app_state = app_state.clone();
+        let window_weak = window_weak.clone();
+        spawn_ui_timer(&window, Duration::from_secs(5), move || {
+            let app_state = app_state.clone();
+            let window_weak = window_weak.clone();
+            
+            if let Ok(mut state) = app_state.lock() {
+                for invoice in &mut state.invoices {
+                    if invoice.state == "PENDING" {
+                        if let Ok(output) = check_invoice(&invoice.hash) {
+                            if output.contains("\"state\": \"ACCEPTED\"") {
+                                invoice.state = SharedString::from("ACCEPTED");
+                                state.status_message = "Payment received and held!".to_string();
+                            } else if output.contains("\"state\": \"SETTLED\"") {
+                                invoice.state = SharedString::from("SETTLED");
+                                state.status_message = "Payment settled!".to_string();
+                            }
+                        }
+                    }
+                }
+                
+                if let Some(window) = window_weak.upgrade() {
+                    window.set_invoices(slint::ModelRc::new(slint::VecModel::from(
+                        state.invoices.clone(),
+                    )));
+                    window.set_status_message(state.status_message.clone().into());
+                }
             }
         });
-    });
-
-    // Update UI state
-    let weak_window = window.as_weak();
-    tokio::spawn(async move {
-        loop {
-            if let Some(window) = weak_window.upgrade() {
-                let state = app_state.lock().await;
-                window.set_invoices(slint::ModelRc::new(slint::VecModel::from(
-                    state.invoices.clone(),
-                )));
-                window.set_status_message(state.status_message.clone().into());
-            }
-            tokio::time::sleep(tokio::time::Duration::from_secs(1)).await;
-        }
-    });
+    }
 
     window.run()?;
     Ok(())
