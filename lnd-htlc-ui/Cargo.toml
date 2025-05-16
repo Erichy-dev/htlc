@@ -7,6 +7,8 @@ edition = "2021"
 slint = "1.3"
 tokio = { version = "1.36", features = ["full"] }
 tonic = { version = "0.10", features = ["tls", "transport"] }
+prost = "0.12"
+prost-types = "0.12"
 hex = "0.4"
 rand = "0.8"
 sha2 = "0.10"
@@ -17,6 +19,9 @@ anyhow = "1.0"
 notify = "6.1"
 dirs = "6.0.0"
 chrono = "0.4"
+shellexpand = "3.1"
+# We'll implement full gRPC support in a future update
+# tonic_lnd = "0.5.1"  
 
 [build-dependencies]
 slint-build = "1.3"

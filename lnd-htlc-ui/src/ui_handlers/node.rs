@@ -10,29 +10,51 @@ use crate::node::{check_node_status, start_lightning_node};
 pub fn check_node_status_timer(app_state: &Arc<Mutex<AppState>>, window_weak: &Weak<MainWindow>) {
     match check_node_status() {
         Ok((is_running, sync_status, wallet_locked)) => {
+            // If wallet is locked, that means node is definitely running
+            let node_is_running = is_running || wallet_locked;
+            println!("DEBUG: Node status check result - is_running: {}, wallet_locked: {}, final state: {}", 
+                    is_running, wallet_locked, node_is_running);
+            
             {
                 if let Ok(mut state) = app_state.lock() {
-                    // Only update if status changed
-                    if state.node_is_running != is_running || 
-                        state.node_sync_status != sync_status ||
-                        state.wallet_needs_unlock != wallet_locked {
-                        
-                        state.node_is_running = is_running;
-                        state.node_sync_status = sync_status.clone();
-                        state.wallet_needs_unlock = wallet_locked;
-                        
-                        // Update status message if wallet became locked
-                        if wallet_locked {
-                            state.status_message = "Lightning wallet is locked. Please unlock it with your wallet password.".to_string();
-                        }
+                    // Update the state with the correct running status
+                    state.node_is_running = node_is_running;
+                    state.node_sync_status = sync_status.clone();
+                    state.wallet_needs_unlock = wallet_locked;
+                    
+                    // Update status message if wallet became locked
+                    if wallet_locked {
+                        state.status_message = "Lightning wallet is locked. Please unlock it with your wallet password.".to_string();
                     }
+                    
+                    println!("DEBUG: After state update - node_is_running: {}, wallet_locked: {}", 
+                             state.node_is_running, state.wallet_needs_unlock);
                 }
             }
             
             if let Some(window) = window_weak.upgrade() {
-                window.set_node_is_running(is_running);
+                // Temporarily print the current UI values
+                let current_node_running = window.get_node_is_running();
+                let current_wallet_locked = window.get_wallet_needs_unlock();
+                println!("DEBUG: Current UI values BEFORE update - node_is_running: {}, wallet_locked: {}", 
+                        current_node_running, current_wallet_locked);
+                
+                // Always update UI with the correct running status
+                window.set_node_is_running(node_is_running);
                 window.set_node_sync_status(SharedString::from(sync_status));
                 window.set_wallet_needs_unlock(wallet_locked);
+                
+                // After updating, read back values to confirm they changed
+                let new_node_running = window.get_node_is_running();
+                let new_wallet_locked = window.get_wallet_needs_unlock();
+                println!("DEBUG: UI values AFTER update - node_is_running: {}, wallet_locked: {}", 
+                        new_node_running, new_wallet_locked);
+                
+                // Make sure the start node button is hidden if the node is running
+                if node_is_running {
+                    window.set_litd_started_by_app(true);
+                    println!("DEBUG: Explicitly setting UI node_is_running to true because node is running");
+                }
                 
                 // Update status message if wallet is locked
                 if wallet_locked {
@@ -72,22 +94,33 @@ pub fn init_node_status_handlers(window: &MainWindow, app_state: &Arc<Mutex<AppS
         thread::spawn(move || {
             match check_node_status() {
                 Ok((is_running, sync_status, wallet_locked)) => {
+                    let node_is_running = is_running || wallet_locked;  // If wallet is locked, node is running
+                    println!("DEBUG: INITIAL NODE STATUS - raw is_running: {}, wallet_locked: {}, effective is_running: {}", 
+                            is_running, wallet_locked, node_is_running);
+                    
                     {
                         if let Ok(mut state) = app_state.lock() {
-                            state.node_is_running = is_running;
+                            state.node_is_running = node_is_running;  // Use the combined flag
                             state.node_sync_status = sync_status.clone();
                             state.wallet_needs_unlock = wallet_locked;
-                            if !is_running {
+                            if !node_is_running {
                                 state.status_message = "Lightning node (lnd) is not running. Please start litd using: litd --network testnet".to_string();
                             }
                         }
                     }
                     
                     if let Some(window) = window_weak.upgrade() {
-                        window.set_node_is_running(is_running);
+                        window.set_node_is_running(node_is_running);  // Use the combined flag
                         window.set_node_sync_status(SharedString::from(sync_status));
                         window.set_wallet_needs_unlock(wallet_locked);
-                        if !is_running {
+                        
+                        // Always forcibly hide the start button if wallet is locked (node must be running)
+                        if wallet_locked {
+                            window.set_litd_started_by_app(true);
+                            println!("DEBUG: Forcibly hiding start button due to wallet locked state");
+                        }
+                        
+                        if !node_is_running {
                             window.set_status_message(SharedString::from(
                                 "Lightning node (lnd) is not running. Please start litd using: litd --network testnet"
                             ));
@@ -129,9 +162,13 @@ pub fn init_node_status_handlers(window: &MainWindow, app_state: &Arc<Mutex<AppS
             thread::spawn(move || {
                 match check_node_status() {
                     Ok((is_running, sync_status, wallet_locked)) => {
+                        let node_is_running = is_running || wallet_locked;  // If wallet is locked, node is running
+                        println!("DEBUG: CHECK STATUS - raw is_running: {}, wallet_locked: {}, effective is_running: {}", 
+                                is_running, wallet_locked, node_is_running);
+                        
                         {
                             if let Ok(mut state) = app_state.lock() {
-                                state.node_is_running = is_running;
+                                state.node_is_running = node_is_running;
                                 state.node_sync_status = sync_status.clone();
                                 state.wallet_needs_unlock = wallet_locked;
                                 state.status_message = "Node status checked".to_string();
@@ -139,9 +176,16 @@ pub fn init_node_status_handlers(window: &MainWindow, app_state: &Arc<Mutex<AppS
                         }
                         
                         if let Some(window) = window_weak.upgrade() {
-                            window.set_node_is_running(is_running);
+                            window.set_node_is_running(node_is_running);
                             window.set_node_sync_status(SharedString::from(sync_status));
                             window.set_wallet_needs_unlock(wallet_locked);
+                            
+                            // Always forcibly hide the start button if wallet is locked (node must be running)
+                            if wallet_locked {
+                                window.set_litd_started_by_app(true);
+                                println!("DEBUG: Forcibly hiding start button due to wallet locked state (check button)");
+                            }
+                            
                             window.set_status_message(SharedString::from("Node status checked"));
                         }
                     },
@@ -186,16 +230,18 @@ pub fn init_node_status_handlers(window: &MainWindow, app_state: &Arc<Mutex<AppS
                 }
                 
                 match start_lightning_node() {
-                    Ok(_) => {
-                        let status_msg = "Started Lightning node";
+                    Ok(pid) => {
+                        let status_msg = format!("Started Lightning node (PID: {})", pid);
                         {
                             if let Ok(mut state) = app_state.lock() {
-                                state.status_message = status_msg.to_string();
+                                state.status_message = status_msg.clone();
+                                state.litd_pid = Some(pid);
                             }
                         }
                         
                         if let Some(window) = window_weak.upgrade() {
                             window.set_status_message(SharedString::from(status_msg));
+                            window.set_litd_started_by_app(true);
                         }
                         
                         // Wait a moment for litd to initialize and then check status

@@ -3,14 +3,15 @@ use std::process::Command;
 use std::fs;
 use std::io::Write;
 use std::time::Duration;
+use std::path::Path;
 
 pub fn check_litd_config() -> Result<bool> {
     // Get user's home directory
     let home = dirs::home_dir()
         .ok_or_else(|| anyhow!("Could not determine user's home directory"))?;
 
-    // Check if the .lit directory exists, create if not
-    let lit_dir = home.join(".lit");
+    // On Windows, litd uses AppData/Local/Lit
+    let lit_dir = home.join("AppData").join("Local").join("Lit");
     if !lit_dir.exists() {
         fs::create_dir_all(&lit_dir)?;
     }
@@ -39,12 +40,27 @@ lnd.protocol.zero-conf=true
 }
 
 pub fn is_wallet_locked() -> Result<bool> {
+    // Get the path to the TLS certificate and macaroon
+    let home_dir = dirs::home_dir().unwrap_or_default();
+    let lit_dir = home_dir.join("AppData").join("Local").join("Lit");
+    let tls_cert_path = lit_dir.join("tls.cert");
+    
+    // Build command with appropriate paths
+    let mut cmd = Command::new("lncli");
+    cmd.arg("--network=testnet")
+       .arg("--rpcserver=127.0.0.1:10009")
+       .arg("--no-macaroons")  // Skip macaroon authentication
+       .arg("--insecure");     // Skip TLS verification
+    
+    // Add TLS cert path if it exists
+    if tls_cert_path.exists() {
+        cmd.arg(format!("--tlscertpath={}", tls_cert_path.to_string_lossy()));
+    }
+    
+    cmd.arg("getinfo");
+    
     // Method 1: Try to run getinfo - if it fails with a wallet locked error, return true
-    let getinfo_output = Command::new("lncli")
-        .arg("--network=testnet")
-        .arg("--rpcserver=127.0.0.1:10009")
-        .arg("getinfo")
-        .output()?;
+    let getinfo_output = cmd.output()?;
     
     // Check for wallet locked error in stderr
     let stderr = String::from_utf8_lossy(&getinfo_output.stderr);
@@ -59,12 +75,20 @@ pub fn is_wallet_locked() -> Result<bool> {
     }
     
     // Method 2: Try listchannels - wallet operations require unlocked wallet
-    let channels_output = Command::new("lncli")
-        .arg("--network=testnet")
-        .arg("--rpcserver=127.0.0.1:10009")
-        .arg("listchannels")
-        .output()?;
+    let mut cmd = Command::new("lncli");
+    cmd.arg("--network=testnet")
+       .arg("--rpcserver=127.0.0.1:10009")
+       .arg("--no-macaroons")  // Skip macaroon authentication
+       .arg("--insecure");     // Skip TLS verification
     
+    // Add TLS cert path if it exists
+    if tls_cert_path.exists() {
+        cmd.arg(format!("--tlscertpath={}", tls_cert_path.to_string_lossy()));
+    }
+    
+    cmd.arg("listchannels");
+    
+    let channels_output = cmd.output()?;
     let channels_stderr = String::from_utf8_lossy(&channels_output.stderr);
     
     if channels_stderr.contains("wallet locked") || 
@@ -82,13 +106,28 @@ pub fn is_wallet_locked() -> Result<bool> {
 pub fn unlock_wallet(password: &str) -> Result<bool> {
     println!("Attempting to unlock wallet...");
     
-    let output = Command::new("lncli")
-        .arg("--network=testnet")
-        .arg("--rpcserver=127.0.0.1:10009")
-        .arg("unlock")
-        .arg("--password")
-        .arg(password)
-        .output()?;
+    // Get the path to the TLS certificate
+    let home_dir = dirs::home_dir().unwrap_or_default();
+    let lit_dir = home_dir.join("AppData").join("Local").join("Lit");
+    let tls_cert_path = lit_dir.join("tls.cert");
+    
+    // Build command with appropriate paths
+    let mut cmd = Command::new("lncli");
+    cmd.arg("--network=testnet")
+       .arg("--rpcserver=127.0.0.1:10009")
+       .arg("--no-macaroons")  // Skip macaroon authentication
+       .arg("--insecure");     // Skip TLS verification
+    
+    // Add TLS cert path if it exists
+    if tls_cert_path.exists() {
+        cmd.arg(format!("--tlscertpath={}", tls_cert_path.to_string_lossy()));
+    }
+    
+    cmd.arg("unlock")
+       .arg("--password")
+       .arg(password);
+    
+    let output = cmd.output()?;
     
     let stdout = String::from_utf8_lossy(&output.stdout);
     let stderr = String::from_utf8_lossy(&output.stderr);

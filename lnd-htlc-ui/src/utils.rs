@@ -5,6 +5,7 @@ use sha2::{Digest, Sha256};
 use slint::{Timer, TimerMode};
 use std::process::Command;
 use std::time::Duration;
+use std::path::Path;
 
 pub fn generate_preimage() -> (String, String) {
     let mut rng = rand::thread_rng();
@@ -19,6 +20,11 @@ pub fn generate_preimage() -> (String, String) {
 }
 
 pub fn run_lncli(args: &[&str]) -> Result<String> {
+    // Get the path to the TLS certificate
+    let home_dir = dirs::home_dir().unwrap_or_default();
+    let lit_dir = home_dir.join("AppData").join("Local").join("Lit");
+    let tls_cert_path = lit_dir.join("tls.cert");
+    
     // Build command with custom RPC server settings
     let mut command = Command::new("lncli");
     
@@ -26,8 +32,16 @@ pub fn run_lncli(args: &[&str]) -> Result<String> {
     command.arg("--network=testnet");
     
     // Add custom RPC server flag - adjust this based on your litd configuration
-    // Use this if your LND RPC server is running on a non-default port
     command.arg("--rpcserver=127.0.0.1:10009");
+    
+    // Skip authentication to avoid certificate verification issues
+    command.arg("--no-macaroons");
+    command.arg("--insecure");
+    
+    // Add TLS cert path if it exists
+    if tls_cert_path.exists() {
+        command.arg(format!("--tlscertpath={}", tls_cert_path.to_string_lossy()));
+    }
     
     // Add the rest of the arguments
     command.args(args);

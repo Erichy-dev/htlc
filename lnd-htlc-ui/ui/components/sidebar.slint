@@ -5,8 +5,9 @@ export component Sidebar inherits Rectangle {
     in property <bool> node-is-running;
     in property <string> node-sync-status;
     in property <bool> wallet-needs-unlock;
+    in property <bool> litd-started-by-app;
     
-    // Callbacks to parent
+    // Callbacks to parent - UI navigation only
     callback manage-channels();
     callback create-channel();
     callback generate-xh();
@@ -14,9 +15,6 @@ export component Sidebar inherits Rectangle {
     callback pay-invoice();
     callback claim-invoice();
     callback create-standard-invoice();
-    callback check-node-status();
-    callback start-node();
-    callback unlock-wallet(string); // password
     
     width: 220px;
     background: #1a1a1a;
@@ -32,54 +30,7 @@ export component Sidebar inherits Rectangle {
             color: #e0e0e0;
         }
         
-        // WALLET UNLOCK SECTION - Move this to the top for visibility
-        if root.wallet-needs-unlock: Rectangle {
-            height: 140px;
-            background: #3a0000; // Deep red background
-            border-radius: 6px;
-            border-width: 2px;
-            border-color: #dc3545;
-            
-            VerticalLayout {
-                padding: 12px;
-                spacing: 10px;
-                
-                Text {
-                    text: "⚠️ WALLET LOCKED";
-                    font-weight: 700;
-                    font-size: 16px;
-                    color: #ff6b70;
-                    horizontal-alignment: center;
-                }
-                
-                wallet-password := LineEdit {
-                    placeholder-text: "Enter wallet password";
-                    input-type: InputType.password;
-                    height: 36px;
-                }
-                
-                TouchArea {
-                    Rectangle {
-                        height: 36px;
-                        width: 100%;
-                        background: #5294e2;
-                        border-radius: 4px;
-                        
-                        Text {
-                            text: "UNLOCK WALLET";
-                            color: white;
-                            font-size: 14px;
-                            font-weight: 700;
-                            horizontal-alignment: center;
-                            vertical-alignment: center;
-                        }
-                    }
-                    clicked => { root.unlock-wallet(wallet-password.text); }
-                }
-            }
-        }
-        
-        // Node status indicator
+        // Node status indicator - simplified to just show status
         Rectangle {
             height: 80px;
             background: #252525;
@@ -111,50 +62,6 @@ export component Sidebar inherits Rectangle {
                     text: "Sync: " + root.node-sync-status;
                     color: #bbbbbb;
                     font-size: 13px;
-                }
-                
-                HorizontalLayout {
-                    spacing: 8px;
-                    
-                    if !root.node-is-running: TouchArea {
-                        width: 100px;
-                        Rectangle {
-                            width: 100%;
-                            height: 26px;
-                            border-radius: 4px;
-                            background: #20c997;
-                            
-                            Text {
-                                text: "Start Node";
-                                color: black;
-                                font-size: 12px;
-                                font-weight: 500;
-                                horizontal-alignment: center;
-                                vertical-alignment: center;
-                            }
-                        }
-                        clicked => { root.start-node(); }
-                    }
-                    
-                    TouchArea {
-                        width: 80px;
-                        Rectangle {
-                            width: 100%;
-                            height: 26px;
-                            border-radius: 4px;
-                            background: #5294e2;
-                            
-                            Text {
-                                text: "Refresh";
-                                color: white;
-                                font-size: 12px;
-                                font-weight: 500;
-                                horizontal-alignment: center;
-                                vertical-alignment: center;
-                            }
-                        }
-                        clicked => { root.check-node-status(); }
-                    }
                 }
             }
         }

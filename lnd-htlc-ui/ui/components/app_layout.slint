@@ -8,9 +8,10 @@ export component AppLayout inherits Rectangle {
     in property <bool> wallet-needs-unlock;
     in property <string> status-message;
     in property <bool> has-error;
+    in property <bool> litd-started-by-app;
     in-out property <int> active-page;
     
-    // Callbacks
+    // UI navigation callbacks only
     callback manage-channels();
     callback create-channel();
     callback generate-xh();
@@ -18,9 +19,6 @@ export component AppLayout inherits Rectangle {
     callback pay-invoice();
     callback claim-invoice();
     callback create-standard-invoice();
-    callback check-node-status();
-    callback start-node();
-    callback unlock-wallet(string);
     
     background: #202020;
     
@@ -37,6 +35,7 @@ export component AppLayout inherits Rectangle {
                 node-is-running: root.node-is-running;
                 node-sync-status: root.node-sync-status;
                 wallet-needs-unlock: root.wallet-needs-unlock;
+                litd-started-by-app: root.litd-started-by-app;
                 
                 manage-channels => { root.manage-channels(); }
                 create-channel => { root.create-channel(); }
@@ -45,9 +44,6 @@ export component AppLayout inherits Rectangle {
                 pay-invoice => { root.pay-invoice(); }
                 claim-invoice => { root.claim-invoice(); }
                 create-standard-invoice => { root.create-standard-invoice(); }
-                check-node-status => { root.check-node-status(); }
-                start-node => { root.start-node(); }
-                unlock-wallet(password) => { root.unlock-wallet(password); }
             }
             
             // Main content area
