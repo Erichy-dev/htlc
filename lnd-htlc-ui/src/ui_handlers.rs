@@ -1,8 +1,9 @@
 use anyhow::Result;
-use slint::{ModelRc, SharedString, VecModel, Weak};
+use slint::{ModelRc, SharedString, VecModel, Weak, ComponentHandle};
 use std::sync::{Arc, Mutex};
 use std::thread;
 use std::time::Duration;
+use chrono;
 
 use crate::MainWindow;
 use crate::types::{AppState, Invoice};
@@ -423,8 +424,8 @@ pub fn init_wallet_handlers(window: &MainWindow, app_state: &Arc<Mutex<AppState>
             let window_weak = window_weak.clone();
             
             if let Some(window) = window_weak.upgrade() {
-                // Hide the dialog but don't change the wallet status
-                window.set_show_wallet_dialog(false);
+                // Hide the dialog by invoking the close callback
+                window.invoke_close_wallet_dialog();
             }
         });
     }
@@ -541,12 +542,13 @@ pub fn init_invoice_handlers(window: &MainWindow, app_state: &Arc<Mutex<AppState
                 match create_invoice(preimage.to_string(), amount.to_string(), memo.to_string()) {
                     Ok((bolt11, hash, amount)) => {
                         let new_invoice = Invoice {
-                            bolt11: SharedString::from(bolt11),
                             hash: SharedString::from(hash.clone()),
-                            preimage: SharedString::from(preimage.to_string()),
-                            amount,
+                            amount: SharedString::from(amount.to_string()),
                             memo: SharedString::from(memo.to_string()),
+                            preimage: SharedString::from(preimage.to_string()),
                             state: SharedString::from("PENDING"),
+                            payment_request: SharedString::from(bolt11),
+                            created_at: SharedString::from(format!("{}", chrono::Local::now().format("%Y-%m-%d %H:%M:%S"))),
                         };
                         let status_message = format!("Created invoice for {} sats", amount);
                         
@@ -683,12 +685,13 @@ pub fn init_invoice_handlers(window: &MainWindow, app_state: &Arc<Mutex<AppState
                 match create_standard_invoice(memo.to_string(), amount) {
                     Ok((bolt11, hash)) => {
                         let new_invoice = Invoice {
-                            bolt11: SharedString::from(bolt11),
                             hash: SharedString::from(hash.clone()),
-                            preimage: SharedString::from(""),  // Standard invoices don't expose preimage
-                            amount,
+                            amount: SharedString::from(amount.to_string()),
                             memo: SharedString::from(memo.to_string()),
+                            preimage: SharedString::from(""),  // Standard invoices don't expose preimage
                             state: SharedString::from("PENDING"),
+                            payment_request: SharedString::from(bolt11),
+                            created_at: SharedString::from(format!("{}", chrono::Local::now().format("%Y-%m-%d %H:%M:%S"))),
                         };
                         let status_message = format!("Created standard invoice for {} sats", amount);
                         let invoices_clone;

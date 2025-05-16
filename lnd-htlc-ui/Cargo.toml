@@ -16,6 +16,7 @@ toml = "0.8"
 anyhow = "1.0"
 notify = "6.1"
 dirs = "6.0.0"
+chrono = "0.4"
 
 [build-dependencies]
 slint-build = "1.3"

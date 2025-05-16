@@ -39,8 +39,7 @@ export component MainWindow inherits Window {
     in property <bool> wallet-needs-unlock: false;
     property <bool> has-error: status-message != "" && (status-message == "Error" || status-message == "Error: ");
     
-    // Property to control the wallet unlock dialog visibility
-    property <bool> show-wallet-dialog: wallet-needs-unlock;
+
     
     // Local storage for preimage and hash
     property <string> current-preimage: "";
@@ -387,7 +386,7 @@ export component MainWindow inherits Window {
     
     // Add the wallet unlock dialog
     wallet-dialog := WalletUnlockDialog {
-        show: root.show-wallet-dialog;
+        show: root.wallet-needs-unlock;
         
         unlock-wallet(password) => {
             root.unlock-wallet(password);
