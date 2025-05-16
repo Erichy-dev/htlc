@@ -1,0 +1,60 @@
+import { Button, ScrollView, VerticalBox } from "std-widgets.slint";
+import { ChannelsView } from "../views/channels_view.slint";
+import { CreateChannelView } from "../views/channel_creation_view.slint";
+import { PreimageView } from "../views/preimage_view.slint";
+import { CreateCustomInvoiceView, PayInvoiceView, ClaimInvoiceView, CreateStandardInvoiceView } from "../views/invoice_views.slint";
+import { Invoice } from "../components/invoice.slint";
+
+export component MainContent inherits Rectangle {
+    in property <int> active-page;
+    in property <[Invoice]> invoices;
+    in property <string> current-preimage;
+    in property <string> current-hash;
+    
+    // Callbacks to parent
+    callback create-custom-invoice(string, string, string);
+    callback pay-custom-invoice(string);
+    callback claim-custom-invoice(string, string);
+    callback create-standard-invoice(string, int);
+    
+    Rectangle {
+        background: #202020;
+        
+        if (active-page == 0): ChannelsView {
+            invoices: root.invoices;
+        }
+        
+        if (active-page == 1): CreateChannelView {
+        }
+        
+        if (active-page == 2): PreimageView {
+            preimage: root.current-preimage;
+            hash: root.current-hash;
+        }
+        
+        if (active-page == 3): CreateCustomInvoiceView {
+            preimage: root.current-preimage;
+            create-invoice(preimage, amount, memo) => {
+                root.create-custom-invoice(preimage, amount, memo);
+            }
+        }
+        
+        if (active-page == 4): PayInvoiceView {
+            pay-invoice(bolt11) => {
+                root.pay-custom-invoice(bolt11);
+            }
+        }
+        
+        if (active-page == 5): ClaimInvoiceView {
+            claim-invoice(hash, preimage) => {
+                root.claim-custom-invoice(hash, preimage);
+            }
+        }
+        
+        if (active-page == 6): CreateStandardInvoiceView {
+            create-invoice(memo, amount) => {
+                root.create-standard-invoice(memo, amount);
+            }
+        }
+    }
+} 

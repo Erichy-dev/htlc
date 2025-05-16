@@ -1,6 +1,5 @@
 use anyhow::{anyhow, Result};
 use std::process::Command;
-use std::path::Path;
 
 use crate::wallet::is_wallet_locked;
 

@@ -1,0 +1,26 @@
+export component StatusBar inherits Rectangle {
+    in property <string> status-message;
+    in property <bool> has-error;
+    
+    height: 40px;
+    background: root.has-error ? #3a0a0a : #1a1a1a;
+    
+    HorizontalLayout {
+        padding-left: 16px;
+        padding-right: 16px;
+        spacing: 8px;
+        alignment: center;
+        
+        Rectangle {
+            width: 8px;
+            height: 8px;
+            border-radius: 4px;
+            background: root.has-error ? #dc3545 : #20c997;
+        }
+        
+        Text {
+            text: status-message;
+            color: root.has-error ? #ff8a8a : #e0e0e0;
+        }
+    }
+} 

@@ -1,0 +1,66 @@
+import { Sidebar } from "sidebar.slint";
+import { StatusBar } from "status_bar.slint";
+
+export component AppLayout inherits Rectangle {
+    // Properties
+    in property <bool> node-is-running;
+    in property <string> node-sync-status;
+    in property <bool> wallet-needs-unlock;
+    in property <string> status-message;
+    in property <bool> has-error;
+    in-out property <int> active-page;
+    
+    // Callbacks
+    callback manage-channels();
+    callback create-channel();
+    callback generate-xh();
+    callback create-custom-invoice();
+    callback pay-invoice();
+    callback claim-invoice();
+    callback create-standard-invoice();
+    callback check-node-status();
+    callback start-node();
+    callback unlock-wallet(string);
+    
+    background: #202020;
+    
+    VerticalLayout {
+        padding: 0px;
+        spacing: 0px;
+        
+        HorizontalLayout {
+            padding: 0px;
+            spacing: 0px;
+            
+            // Sidebar
+            Sidebar {
+                node-is-running: root.node-is-running;
+                node-sync-status: root.node-sync-status;
+                wallet-needs-unlock: root.wallet-needs-unlock;
+                
+                manage-channels => { root.manage-channels(); }
+                create-channel => { root.create-channel(); }
+                generate-xh => { root.generate-xh(); }
+                create-custom-invoice => { root.create-custom-invoice(); }
+                pay-invoice => { root.pay-invoice(); }
+                claim-invoice => { root.claim-invoice(); }
+                create-standard-invoice => { root.create-standard-invoice(); }
+                check-node-status => { root.check-node-status(); }
+                start-node => { root.start-node(); }
+                unlock-wallet(password) => { root.unlock-wallet(password); }
+            }
+            
+            // Main content area
+            Rectangle {
+                background: #202020;
+                @children
+            }
+        }
+        
+        // Status bar at bottom
+        StatusBar {
+            status-message: root.status-message;
+            has-error: root.has-error;
+        }
+    }
+} 
