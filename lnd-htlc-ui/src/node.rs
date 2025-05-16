@@ -1,7 +1,12 @@
 use anyhow::{anyhow, Result};
 use std::process::Command;
+use std::os::windows::process::CommandExt;
+use std::process::Stdio;
 
 use crate::wallet::is_wallet_locked;
+
+// Windows-specific flag to hide console window
+const CREATE_NO_WINDOW: u32 = 0x08000000;
 
 pub fn check_node_status() -> Result<(bool, String, bool)> {
     // First check if the node is running at all
@@ -76,19 +81,17 @@ pub fn start_lightning_node() -> Result<()> {
         return Err(anyhow!("lit.conf file not found. Please run the app again to create it."));
     }
     
-    // Use a different command based on the OS
-    #[cfg(target_os = "windows")]
-    let mut command = Command::new("cmd");
-    #[cfg(target_os = "windows")]
-    command.args(["/c", "start", "cmd", "/k", "litd", "--network=testnet"]);
+    // Start litd as a hidden background process on Windows
+    let child = Command::new("litd")
+        .arg("--network=testnet")
+        .creation_flags(CREATE_NO_WINDOW) // Windows-specific flag to hide console window
+        .stdin(Stdio::null())
+        .stdout(Stdio::null())
+        .stderr(Stdio::null())
+        .spawn()?;
     
-    #[cfg(not(target_os = "windows"))]
-    let mut command = Command::new("sh");
-    #[cfg(not(target_os = "windows"))]
-    command.args(["-c", "gnome-terminal -- bash -c 'litd --network=testnet; read'"]);
-    
-    // Execute the command
-    command.spawn()?;
+    // Log the process ID for debugging purposes
+    println!("Started litd process with PID: {}", child.id());
     
     Ok(())
 } 
