@@ -1,0 +1,97 @@
+import { Button } from "std-widgets.slint";
+
+// Define our Invoice structure
+export struct Invoice {
+    hash: string,
+    amount: string,
+    memo: string,
+    preimage: string,
+    state: string,
+    payment_request: string,
+    created_at: string
+}
+
+// Component for displaying a single invoice in the list
+export component InvoiceItem {
+    in property <Invoice> invoice;
+    in property <bool> is-settled: false;
+    callback settle-clicked();
+    
+    height: 100px;
+    
+    Rectangle {
+        background: root.is-settled ? #2d3b2d : #3b2d2d;
+        border-radius: 4px;
+        
+        HorizontalLayout {
+            padding: 12px;
+            spacing: 12px;
+            
+            VerticalLayout {
+                width: 60%;
+                spacing: 4px;
+                
+                Text {
+                    text: "Hash: " + root.invoice.hash;
+                    color: #e0e0e0;
+                    font-size: 14px;
+                    overflow: elide;
+                }
+                
+                Text {
+                    text: "Amount: " + root.invoice.amount + " sats";
+                    color: #e0e0e0;
+                    font-weight: 600;
+                }
+                
+                Text {
+                    text: "Memo: " + root.invoice.memo;
+                    color: #bbbbbb;
+                    font-size: 13px;
+                }
+                
+                Text {
+                    text: "Created: " + root.invoice.created_at;
+                    color: #bbbbbb;
+                    font-size: 12px;
+                }
+            }
+            
+            Rectangle {
+                width: 1px;
+                background: #3a3a3a;
+            }
+            
+            VerticalLayout {
+                width: 40%;
+                spacing: 8px;
+                
+                Text {
+                    text: "Status: " + root.invoice.state;
+                    color: root.is-settled ? #a3ffb0 : #ffb0a3;
+                    font-weight: 600;
+                    horizontal-alignment: center;
+                }
+                
+                if !root.is-settled: TouchArea {
+                    Rectangle {
+                        height: 32px;
+                        width: 100%;
+                        border-radius: 4px;
+                        background: #5294e2;
+                        
+                        Text {
+                            text: "Settle";
+                            color: white;
+                            font-size: 14px;
+                            font-weight: 500;
+                            horizontal-alignment: center;
+                            vertical-alignment: center;
+                        }
+                    }
+                    clicked => { root.settle-clicked(); }
+                }
+            }
+        }
+    }
+} 

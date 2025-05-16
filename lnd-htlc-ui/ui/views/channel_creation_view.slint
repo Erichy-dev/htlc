@@ -1,0 +1,88 @@
+import { LineEdit } from "std-widgets.slint";
+
+export component CreateChannelView {
+    callback create-channel(string, string);  // node_pubkey, amount
+    
+    VerticalLayout {
+        spacing: 16px;
+        
+        // Header
+        Text {
+            text: "Create New Channel";
+            font-size: 24px;
+            font-weight: 600;
+            color: #e0e0e0;
+        }
+        
+        Rectangle {
+            vertical-stretch: 1;
+            background: #2a2a2a;
+            border-radius: 8px;
+            
+            VerticalLayout {
+                padding: 24px;
+                spacing: 16px;
+                
+                Text {
+                    text: "Enter the details for your new channel:";
+                    color: #e0e0e0;
+                    font-weight: 500;
+                }
+                
+                VerticalLayout {
+                    spacing: 8px;
+                    
+                    Text {
+                        text: "Node Public Key:";
+                        color: #e0e0e0;
+                    }
+                    
+                    node-pubkey := LineEdit {
+                        placeholder-text: "Enter remote node's public key";
+                        height: 36px;
+                    }
+                }
+                
+                VerticalLayout {
+                    spacing: 8px;
+                    
+                    Text {
+                        text: "Channel Capacity (sats):";
+                        color: #e0e0e0;
+                    }
+                    
+                    amount := LineEdit {
+                        placeholder-text: "Amount in satoshis";
+                        height: 36px;
+                    }
+                }
+                
+                Rectangle { height: 16px; }
+                
+                HorizontalLayout {
+                    alignment: end;
+                    
+                    TouchArea {
+                        Rectangle {
+                            width: 160px;
+                            height: 42px;
+                            border-radius: 4px;
+                            background: #5294e2;
+                            
+                            Text {
+                                text: "Create Channel";
+                                color: white;
+                                font-weight: 600;
+                                horizontal-alignment: center;
+                                vertical-alignment: center;
+                            }
+                        }
+                        clicked => {
+                            root.create-channel(node-pubkey.text, amount.text);
+                        }
+                    }
+                }
+            }
+        }
+    }
+} 

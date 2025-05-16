@@ -1,0 +1,347 @@
+import { LineEdit } from "std-widgets.slint";
+
+// 1. Create Custom Invoice View
+export component CreateCustomInvoiceView {
+    callback create-clicked(string, string, string); // preimage, amount, memo
+    
+    VerticalLayout {
+        spacing: 16px;
+        
+        // Header
+        Text {
+            text: "Create Custom Invoice";
+            font-size: 24px;
+            font-weight: 600;
+            color: #e0e0e0;
+        }
+        
+        Rectangle {
+            vertical-stretch: 1;
+            background: #2a2a2a;
+            border-radius: 8px;
+            
+            VerticalLayout {
+                padding: 24px;
+                spacing: 16px;
+                
+                Text {
+                    text: "Create a custom invoice with your own preimage:";
+                    color: #e0e0e0;
+                    font-weight: 500;
+                }
+                
+                VerticalLayout {
+                    spacing: 8px;
+                    
+                    Text {
+                        text: "Preimage:";
+                        color: #e0e0e0;
+                    }
+                    
+                    preimage := LineEdit {
+                        placeholder-text: "Enter a 32-byte hex preimage";
+                        height: 36px;
+                    }
+                }
+                
+                VerticalLayout {
+                    spacing: 8px;
+                    
+                    Text {
+                        text: "Amount (sats):";
+                        color: #e0e0e0;
+                    }
+                    
+                    amount := LineEdit {
+                        placeholder-text: "Amount in satoshis";
+                        height: 36px;
+                    }
+                }
+                
+                VerticalLayout {
+                    spacing: 8px;
+                    
+                    Text {
+                        text: "Memo:";
+                        color: #e0e0e0;
+                    }
+                    
+                    memo := LineEdit {
+                        placeholder-text: "Optional description for the invoice";
+                        height: 36px;
+                    }
+                }
+                
+                HorizontalLayout {
+                    alignment: end;
+                    
+                    TouchArea {
+                        Rectangle {
+                            width: 160px;
+                            height: 42px;
+                            border-radius: 4px;
+                            background: #5294e2;
+                            
+                            Text {
+                                text: "Create Invoice";
+                                color: white;
+                                font-weight: 600;
+                                horizontal-alignment: center;
+                                vertical-alignment: center;
+                            }
+                        }
+                        clicked => {
+                            root.create-clicked(preimage.text, amount.text, memo.text);
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+// 2. Pay Invoice View
+export component PayInvoiceView {
+    callback pay-clicked(string); // bolt11
+    
+    VerticalLayout {
+        spacing: 16px;
+        
+        // Header
+        Text {
+            text: "Pay Invoice";
+            font-size: 24px;
+            font-weight: 600;
+            color: #e0e0e0;
+        }
+        
+        Rectangle {
+            vertical-stretch: 1;
+            background: #2a2a2a;
+            border-radius: 8px;
+            
+            VerticalLayout {
+                padding: 24px;
+                spacing: 16px;
+                
+                Text {
+                    text: "Enter a Lightning invoice to pay:";
+                    color: #e0e0e0;
+                    font-weight: 500;
+                }
+                
+                VerticalLayout {
+                    spacing: 8px;
+                    
+                    Text {
+                        text: "BOLT11 Invoice:";
+                        color: #e0e0e0;
+                    }
+                    
+                    bolt11 := LineEdit {
+                        placeholder-text: "lnbc...";
+                        height: 36px;
+                    }
+                }
+                
+                HorizontalLayout {
+                    alignment: end;
+                    
+                    TouchArea {
+                        Rectangle {
+                            width: 120px;
+                            height: 42px;
+                            border-radius: 4px;
+                            background: #5294e2;
+                            
+                            Text {
+                                text: "Pay";
+                                color: white;
+                                font-weight: 600;
+                                horizontal-alignment: center;
+                                vertical-alignment: center;
+                            }
+                        }
+                        clicked => {
+                            root.pay-clicked(bolt11.text);
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+// 3. Claim Invoice View
+export component ClaimInvoiceView {
+    callback claim-clicked(string, string); // hash, preimage
+    
+    VerticalLayout {
+        spacing: 16px;
+        
+        // Header
+        Text {
+            text: "Claim Custom Invoice";
+            font-size: 24px;
+            font-weight: 600;
+            color: #e0e0e0;
+        }
+        
+        Rectangle {
+            vertical-stretch: 1;
+            background: #2a2a2a;
+            border-radius: 8px;
+            
+            VerticalLayout {
+                padding: 24px;
+                spacing: 16px;
+                
+                Text {
+                    text: "Claim a pending invoice with your preimage:";
+                    color: #e0e0e0;
+                    font-weight: 500;
+                }
+                
+                VerticalLayout {
+                    spacing: 8px;
+                    
+                    Text {
+                        text: "Payment Hash:";
+                        color: #e0e0e0;
+                    }
+                    
+                    hash := LineEdit {
+                        placeholder-text: "Hash of the payment to claim";
+                        height: 36px;
+                    }
+                }
+                
+                VerticalLayout {
+                    spacing: 8px;
+                    
+                    Text {
+                        text: "Preimage:";
+                        color: #e0e0e0;
+                    }
+                    
+                    preimage := LineEdit {
+                        placeholder-text: "Preimage that hashes to the payment hash";
+                        height: 36px;
+                    }
+                }
+                
+                HorizontalLayout {
+                    alignment: end;
+                    
+                    TouchArea {
+                        Rectangle {
+                            width: 120px;
+                            height: 42px;
+                            border-radius: 4px;
+                            background: #5294e2;
+                            
+                            Text {
+                                text: "Claim";
+                                color: white;
+                                font-weight: 600;
+                                horizontal-alignment: center;
+                                vertical-alignment: center;
+                            }
+                        }
+                        clicked => {
+                            root.claim-clicked(hash.text, preimage.text);
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+// 4. Create Standard Invoice View
+export component CreateStandardInvoiceView {
+    callback create-clicked(string, int); // memo, amount
+    property <int> parsed-amount: 0;
+    
+    VerticalLayout {
+        spacing: 16px;
+        
+        // Header
+        Text {
+            text: "Create Standard Invoice";
+            font-size: 24px;
+            font-weight: 600;
+            color: #e0e0e0;
+        }
+        
+        Rectangle {
+            vertical-stretch: 1;
+            background: #2a2a2a;
+            border-radius: 8px;
+            
+            VerticalLayout {
+                padding: 24px;
+                spacing: 16px;
+                
+                Text {
+                    text: "Create a standard Lightning invoice:";
+                    color: #e0e0e0;
+                    font-weight: 500;
+                }
+                
+                VerticalLayout {
+                    spacing: 8px;
+                    
+                    Text {
+                        text: "Amount (sats):";
+                        color: #e0e0e0;
+                    }
+                    
+                    amount := LineEdit {
+                        placeholder-text: "Amount in satoshis";
+                        height: 36px;
+                    }
+                }
+                
+                VerticalLayout {
+                    spacing: 8px;
+                    
+                    Text {
+                        text: "Memo:";
+                        color: #e0e0e0;
+                    }
+                    
+                    memo := LineEdit {
+                        placeholder-text: "Description for the invoice";
+                        height: 36px;
+                    }
+                }
+                
+                HorizontalLayout {
+                    alignment: end;
+                    
+                    TouchArea {
+                        Rectangle {
+                            width: 160px;
+                            height: 42px;
+                            border-radius: 4px;
+                            background: #5294e2;
+                            
+                            Text {
+                                text: "Create Invoice";
+                                color: white;
+                                font-weight: 600;
+                                horizontal-alignment: center;
+                                vertical-alignment: center;
+                            }
+                        }
+                        clicked => {
+                            // Let backend handle conversion
+                            root.create-clicked(memo.text, 0);
+                        }
+                    }
+                }
+            }
+        }
+    }
+} 

@@ -1,0 +1,118 @@
+import { LineEdit } from "std-widgets.slint";
+
+export component PreimageView {
+    in property <string> current-preimage: "";
+    in property <string> current-hash: "";
+    callback generate-clicked();
+    
+    VerticalLayout {
+        spacing: 16px;
+        
+        // Header
+        Text {
+            text: "Generate Preimage/Hash";
+            font-size: 24px;
+            font-weight: 600;
+            color: #e0e0e0;
+        }
+        
+        Rectangle {
+            vertical-stretch: 1;
+            background: #2a2a2a;
+            border-radius: 8px;
+            
+            VerticalLayout {
+                padding: 24px;
+                spacing: 16px;
+                
+                Text {
+                    text: "Generate a random preimage and its corresponding hash value (SHA-256). These can be used for Hash Time-Locked Contracts (HTLCs).";
+                    color: #e0e0e0;
+                    wrap: word-wrap;
+                }
+                
+                VerticalLayout {
+                    spacing: 8px;
+                    
+                    Text {
+                        text: "Preimage (X):";
+                        color: #e0e0e0;
+                        font-weight: 500;
+                    }
+                    
+                    preimage := LineEdit {
+                        text: root.current-preimage;
+                        placeholder-text: "Click 'Generate New' to create a preimage";
+                        read-only: true;
+                        height: 36px;
+                    }
+                }
+                
+                VerticalLayout {
+                    spacing: 8px;
+                    
+                    Text {
+                        text: "Hash (H):";
+                        color: #e0e0e0;
+                        font-weight: 500;
+                    }
+                    
+                    hash := LineEdit {
+                        text: root.current-hash;
+                        placeholder-text: "SHA-256 hash will appear here";
+                        read-only: true;
+                        height: 36px;
+                    }
+                }
+                
+                Rectangle { height: 16px; }
+                
+                HorizontalLayout {
+                    alignment: center;
+                    
+                    TouchArea {
+                        Rectangle {
+                            width: 160px;
+                            height: 42px;
+                            border-radius: 4px;
+                            background: #5294e2;
+                            
+                            Text {
+                                text: "Generate New";
+                                color: white;
+                                font-weight: 600;
+                                horizontal-alignment: center;
+                                vertical-alignment: center;
+                            }
+                        }
+                        clicked => { root.generate-clicked(); }
+                    }
+                }
+                
+                if root.current-preimage != "" && root.current-hash != "": Rectangle {
+                    background: #2d3b2d;
+                    border-radius: 4px;
+                    height: 100px;
+                    
+                    VerticalLayout {
+                        padding: 16px;
+                        spacing: 8px;
+                        
+                        Text {
+                            text: "Information";
+                            color: #e0e0e0;
+                            font-weight: 600;
+                        }
+                        
+                        Text {
+                            text: "You can use this preimage/hash pair for various HTLC operations. The preimage (X) should be kept secret until you want to claim funds. Only share the hash (H) when creating the HTLC.";
+                            color: #a3ffb0;
+                            wrap: word-wrap;
+                            font-size: 14px;
+                        }
+                    }
+                }
+            }
+        }
+    }
+} 

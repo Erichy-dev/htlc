@@ -1,0 +1,133 @@
+import { ScrollView } from "std-widgets.slint";
+
+// Define our Channel structure
+export struct Channel {
+    channel_id: string,
+    remote_pubkey: string,
+    capacity: string,
+    local_balance: string,
+    remote_balance: string,
+    active: bool
+}
+
+export component ChannelsView {
+    in property <[Channel]> channels: [];
+    
+    VerticalLayout {
+        spacing: 16px;
+        
+        // Header
+        HorizontalLayout {
+            spacing: 12px;
+            alignment: space-between;
+            
+            Text {
+                text: "Manage Channels";
+                font-size: 24px;
+                font-weight: 600;
+                color: #e0e0e0;
+            }
+            
+            TouchArea {
+                Rectangle {
+                    width: 120px;
+                    height: 36px;
+                    border-radius: 4px;
+                    background: #5294e2;
+                    
+                    Text {
+                        text: "Refresh";
+                        color: white;
+                        font-weight: 500;
+                        horizontal-alignment: center;
+                        vertical-alignment: center;
+                    }
+                }
+            }
+        }
+        
+        // Channels list
+        if root.channels.length == 0: Rectangle {
+            height: 100px;
+            
+            Text {
+                text: "No channels found. Create a new channel to get started.";
+                color: #bbbbbb;
+                horizontal-alignment: center;
+                vertical-alignment: center;
+            }
+        }
+        
+        if root.channels.length > 0: Rectangle {
+            vertical-stretch: 1;
+            background: #2a2a2a;
+            border-radius: 8px;
+            
+            ScrollView {
+                VerticalLayout {
+                    padding: 16px;
+                    spacing: 12px;
+                    
+                    for channel in root.channels: Rectangle {
+                        height: 120px;
+                        background: channel.active ? #2d3b2d : #3b2d2d;
+                        border-radius: 4px;
+                        
+                        VerticalLayout {
+                            padding: 12px;
+                            spacing: 8px;
+                            
+                            HorizontalLayout {
+                                spacing: 8px;
+                                
+                                Text {
+                                    text: "Channel ID: " + channel.channel_id;
+                                    color: #e0e0e0;
+                                    font-weight: 500;
+                                }
+                                
+                                Rectangle {
+                                    width: 10px;
+                                    height: 10px;
+                                    border-radius: 5px;
+                                    background: channel.active ? #20c997 : #dc3545;
+                                }
+                                
+                                Text {
+                                    text: channel.active ? "Active" : "Inactive";
+                                    color: channel.active ? #a3ffb0 : #ffb0a3;
+                                }
+                            }
+                            
+                            Text {
+                                text: "Remote Node: " + channel.remote_pubkey;
+                                color: #e0e0e0;
+                                font-size: 14px;
+                                overflow: elide;
+                            }
+                            
+                            HorizontalLayout {
+                                spacing: 16px;
+                                
+                                Text {
+                                    text: "Capacity: " + channel.capacity + " sats";
+                                    color: #bbbbbb;
+                                }
+                                
+                                Text {
+                                    text: "Local: " + channel.local_balance + " sats";
+                                    color: #a3ffb0;
+                                }
+                                
+                                Text {
+                                    text: "Remote: " + channel.remote_balance + " sats";
+                                    color: #ffb0a3;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+} 
