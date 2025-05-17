@@ -1,86 +1,76 @@
-import { LineEdit } from "std-widgets.slint";
+import { Button, LineEdit, VerticalBox } from "std-widgets.slint";
 
-export component CreateChannelView {
-    callback create-channel(string, string);  // node_pubkey, amount
+export component CreateChannelView inherits Rectangle {
+    callback connect-peer(string, string, string); // pubkey, host, port
     
     VerticalLayout {
+        padding: 24px;
         spacing: 16px;
         
-        // Header
         Text {
-            text: "Create New Channel";
+            text: "Connect to Lightning Node";
             font-size: 24px;
             font-weight: 600;
             color: #e0e0e0;
         }
         
-        Rectangle {
-            vertical-stretch: 1;
-            background: #2a2a2a;
-            border-radius: 8px;
+        Rectangle { height: 1px; background: #3a3a3a; }
+        
+        VerticalLayout {
+            spacing: 16px;
             
             VerticalLayout {
-                padding: 24px;
-                spacing: 16px;
+                spacing: 6px;
                 
                 Text {
-                    text: "Enter the details for your new channel:";
-                    color: #e0e0e0;
-                    font-weight: 500;
+                    text: "Node Public Key";
+                    color: #bbbbbb;
+                }
+                
+                pubkey := LineEdit {
+                    placeholder-text: "Enter the 66-character public key";
+                }
+            }
+            
+            HorizontalLayout {
+                spacing: 16px;
+                
+                VerticalLayout {
+                    spacing: 6px;
+                    
+                    Text {
+                        text: "Host";
+                        color: #bbbbbb;
+                    }
+                    
+                    host := LineEdit {
+                        placeholder-text: "IP address or hostname";
+                    }
                 }
                 
                 VerticalLayout {
-                    spacing: 8px;
+                    spacing: 6px;
                     
                     Text {
-                        text: "Node Public Key:";
-                        color: #e0e0e0;
+                        text: "Port";
+                        color: #bbbbbb;
                     }
                     
-                    node-pubkey := LineEdit {
-                        placeholder-text: "Enter remote node's public key";
-                        height: 36px;
+                    port := LineEdit {
+                        placeholder-text: "Default: 8443";
+                        text: "8443";
                     }
                 }
+            }
+            
+            Rectangle { height: 8px; }
+            
+            Button {
+                text: "Connect to Peer";
+                primary: true;
                 
-                VerticalLayout {
-                    spacing: 8px;
-                    
-                    Text {
-                        text: "Channel Capacity (sats):";
-                        color: #e0e0e0;
-                    }
-                    
-                    amount := LineEdit {
-                        placeholder-text: "Amount in satoshis";
-                        height: 36px;
-                    }
-                }
-                
-                Rectangle { height: 16px; }
-                
-                HorizontalLayout {
-                    alignment: end;
-                    
-                    TouchArea {
-                        Rectangle {
-                            width: 160px;
-                            height: 42px;
-                            border-radius: 4px;
-                            background: #5294e2;
-                            
-                            Text {
-                                text: "Create Channel";
-                                color: white;
-                                font-weight: 600;
-                                horizontal-alignment: center;
-                                vertical-alignment: center;
-                            }
-                        }
-                        clicked => {
-                            root.create-channel(node-pubkey.text, amount.text);
-                        }
-                    }
+                clicked => {
+                    root.connect-peer(pubkey.text, host.text, port.text);
                 }
             }
         }

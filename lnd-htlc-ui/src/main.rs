@@ -2,6 +2,7 @@ mod invoice;
 mod types;
 mod utils;
 mod node;
+mod channels;
 
 use anyhow::Result;
 use slint::SharedString;
@@ -50,13 +51,64 @@ async fn main() -> Result<()> {
         }
     });
 
-    // Set up callbacks for UI navigation - don't try to set active-page directly
+    // Set up callbacks for UI navigation
     window.on_manage_channels(move || {
-        println!("Demo: Manage Channels clicked");
+        println!("Manage Channels clicked");
     });
 
-    window.on_create_channel(move || {
-        println!("Demo: Create Channel clicked");
+    // Handle peer connection
+    let window_weak_clone = window_weak.clone();
+    window.on_connect_peer(move |pubkey, host, port| {
+        println!("Connecting to peer: {} @ {}:{}", pubkey, host, port);
+        
+        // Parse port from string
+        let port_num = match port.parse::<u16>() {
+            Ok(p) => p,
+            Err(_) => {
+                if let Some(window) = window_weak_clone.upgrade() {
+                    window.set_status_message(SharedString::from(
+                        "Invalid port number. Please enter a valid number."
+                    ));
+                }
+                return;
+            }
+        };
+        
+        // Clone for async move
+        let pubkey_clone = pubkey.to_string();
+        let host_clone = host.to_string();
+        let window_weak_for_connect = window_weak_clone.clone();
+        
+        // Update UI to show connecting status
+        if let Some(window) = window_weak_clone.upgrade() {
+            window.set_status_message(SharedString::from(
+                format!("Connecting to {}...", pubkey)
+            ));
+        }
+        
+        // Connect to peer in background thread
+        tokio::spawn(async move {
+            // Connect to peer
+            let result = channels::connect_to_peer(&pubkey_clone, &host_clone, port_num);
+            
+            // Update UI with result
+            if let Some(window) = window_weak_for_connect.upgrade() {
+                match result {
+                    Ok(output) => {
+                        window.set_status_message(SharedString::from(
+                            format!("Successfully connected to peer: {}", pubkey_clone)
+                        ));
+                        println!("Connection successful: {}", output);
+                    },
+                    Err(e) => {
+                        window.set_status_message(SharedString::from(
+                            format!("Failed to connect: {}", e)
+                        ));
+                        println!("Connection error: {}", e);
+                    }
+                }
+            }
+        });
     });
 
     let window_weak_clone = window_weak.clone();

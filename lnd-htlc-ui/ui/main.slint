@@ -35,6 +35,7 @@ export component MainWindow inherits Window {
     callback manage-channels();
     callback create-channel();
     callback generate-xh();
+    callback connect-peer(string, string, string); // pubkey, host, port
     callback create-custom-invoice(string, string, string); // preimage, amount, memo
     callback pay-custom-invoice(string); // bolt11
     callback claim-custom-invoice(string, string); // hash, preimage
@@ -64,7 +65,7 @@ export component MainWindow inherits Window {
         active-page <=> root.active-page;
         
         manage-channels => { root.manage-channels(); }
-        create-channel => { root.create-channel(); }
+        create-channel => { root.active-page = 1; }
         generate-xh => { root.generate-xh(); }
         create-custom-invoice => { root.active-page = 3; }
         pay-invoice => { root.active-page = 4; }
@@ -79,10 +80,9 @@ export component MainWindow inherits Window {
             }
         }
         
-        if (active-page == 1): Rectangle {
-            Text {
-                text: "Create Channel View";
-                color: white;
+        if (active-page == 1): CreateChannelView {
+            connect-peer(pubkey, host, port) => {
+                root.connect-peer(pubkey, host, port);
             }
         }
         
