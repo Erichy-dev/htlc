@@ -5,6 +5,7 @@ mod node;
 mod channels;
 
 use anyhow::Result;
+use serde::Deserialize;
 use slint::{Model, ModelRc, SharedString, VecModel};
 use std::rc::Rc;
 use std::sync::{Arc, Mutex};
@@ -17,6 +18,23 @@ use node::{node_status, NodeInfo};
 use channels::{ActiveChannelInfo, PendingChannelInfo};
 
 slint::include_modules!();
+
+// Structs for deserializing lncli listinvoices output
+#[derive(Deserialize, Debug, Clone)]
+struct LnCliInvoice {
+    memo: String,
+    r_hash: String,
+    value: String, // Value is often a string in lncli output
+    state: String, // e.g., "OPEN", "SETTLED"
+    creation_date: String, // Unix timestamp string
+    // Add other fields if needed, like amt_paid_sat, is_keysend etc.
+}
+
+#[derive(Deserialize, Debug)]
+struct ListInvoicesResponse {
+    invoices: Vec<LnCliInvoice>,
+    // last_index_offset, first_index_offset if you need pagination
+}
 
 #[tokio::main]
 async fn main() -> Result<()> {
@@ -102,9 +120,6 @@ async fn main() -> Result<()> {
                             window_on_event_loop.set_status_message(format!("{} Error loading pending channels: {}", current_status, e).into());
                         }
                     }
-                    println!("Slint invoke: Active Ch: {}, Pending Ch: {}. Navigating to page 0.",
-                    window_on_event_loop.get_channels().iter().len(),
-                    window_on_event_loop.get_pending_channels().iter().len());
                     window_on_event_loop.set_active_page(0i32); // Navigate to channels view (page 0)
                 } else {
                         println!("Window disappeared before UI update could be scheduled on event loop.");
@@ -240,6 +255,58 @@ async fn main() -> Result<()> {
                         ));
                         println!("Connection error: {}", e);
                     }
+                }
+            }
+        });
+    });
+
+    let window_weak_clone = window_weak.clone();
+    window.on_manage_invoices(move || {
+        println!("Listing invoices (UI callback invoked)...");
+        let ui_handle_weak = window_weak_clone.clone();
+
+        tokio::spawn(async move {
+            match invoice::list_invoices() {
+                Ok(invoices_json_str) => {
+                    // Attempt to parse the JSON
+                    match serde_json::from_str::<ListInvoicesResponse>(&invoices_json_str) {
+                        Ok(parsed_response) => {
+                            let slint_invoices_vec: Vec<InvoiceDetails> = parsed_response.invoices.into_iter().map(|i| InvoiceDetails {
+                                memo: i.memo.into(),
+                                r_hash: i.r_hash.into(),
+                                value: i.value.into(),
+                                state: i.state.into(),
+                                creation_date: i.creation_date.into(), // Consider formatting this from timestamp if needed
+                            }).collect();
+
+                            let _ = slint::invoke_from_event_loop(move || {
+                                if let Some(window) = ui_handle_weak.upgrade() {
+                                    window.set_all_invoices(ModelRc::new(VecModel::from(slint_invoices_vec)));
+                                    window.set_status_message("Invoices loaded.".into());
+                                    println!("Invoices successfully loaded and UI updated.");
+                                    window.set_active_page(2i32);
+                                }
+                            });
+                        }
+                        Err(e) => {
+                            let error_msg = format!("Error parsing invoices JSON: {}", e);
+                            println!("{}", error_msg);
+                            let _ = slint::invoke_from_event_loop(move || {
+                                if let Some(window) = ui_handle_weak.upgrade() {
+                                    window.set_status_message(error_msg.into());
+                                }
+                            });
+                        }
+                    }
+                }
+                Err(e) => {
+                    let error_msg = format!("Error listing invoices from lncli: {}", e);
+                    println!("{}", error_msg);
+                    let _ = slint::invoke_from_event_loop(move || {
+                        if let Some(window) = ui_handle_weak.upgrade() {
+                            window.set_status_message(error_msg.into());
+                        }
+                    });
                 }
             }
         });

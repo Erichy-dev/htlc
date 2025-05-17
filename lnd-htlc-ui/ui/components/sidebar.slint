@@ -13,6 +13,7 @@ export component Sidebar inherits Rectangle {
     callback create-channel();
     callback generate-xh();
     callback create-custom-invoice();
+    callback manage-invoices();
     callback pay-invoice();
     callback claim-invoice();
     callback create-standard-invoice();
@@ -139,6 +140,23 @@ export component Sidebar inherits Rectangle {
                     font-weight: 600;
                     color: #d0d0d0;
                 }
+            }
+
+            TouchArea {
+                Rectangle {
+                    height: 34px;
+                    width: 100%;
+                    background: #333333;
+                    border-radius: 4px;
+                    
+                    Text {
+                        text: "Manage Invoices";
+                        color: white;
+                        horizontal-alignment: center;
+                        vertical-alignment: center;
+                    }
+                }
+                clicked => { root.manage-invoices(); }
             }
             
             TouchArea {

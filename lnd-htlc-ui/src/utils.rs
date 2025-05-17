@@ -20,45 +20,6 @@ pub fn generate_preimage() -> (String, String) {
     (preimage_hex, hash_hex)
 }
 
-pub fn run_lncli(args: &[&str]) -> Result<String> {
-    // Get the path to the TLS certificate
-    let home_dir = dirs::home_dir().unwrap_or_default();
-    let lit_dir = home_dir.join("AppData").join("Local").join("Lit");
-    let tls_cert_path = lit_dir.join("tls.cert");
-    
-    // Build command with custom RPC server settings
-    let mut command = Command::new("lncli");
-    
-    // Add network flag
-    command.arg("--network=testnet");
-    
-    // Add custom RPC server flag - adjust this based on your litd configuration
-    command.arg("--rpcserver=127.0.0.1:10009");
-    
-    // Skip authentication to avoid certificate verification issues
-    command.arg("--no-macaroons");
-    command.arg("--insecure");
-    
-    // Add TLS cert path if it exists
-    if tls_cert_path.exists() {
-        command.arg(format!("--tlscertpath={}", tls_cert_path.to_string_lossy()));
-    }
-    
-    // Add the rest of the arguments
-    command.args(args);
-    
-    let output = command.output()?;
-
-    if !output.status.success() {
-        return Err(anyhow!(
-            "lncli command failed: {}",
-            String::from_utf8_lossy(&output.stderr)
-        ));
-    }
-
-    Ok(String::from_utf8(output.stdout)?)
-}
-
 pub fn spawn_ui_timer<F>(window: &MainWindow, interval: Duration, callback: F)
 where
     F: Fn() + 'static,

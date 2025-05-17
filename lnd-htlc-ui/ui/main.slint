@@ -4,10 +4,11 @@ import { WalletUnlockDialog } from "components/wallet_dialog.slint";
 import { ActionButton } from "components/action_button.slint";
 import { AppLayout } from "components/app_layout.slint";
 import { ChannelsView, Channel, PendingChannel } from "views/channels_view.slint";
-import { CreateCustomInvoiceView, PayInvoiceView, ClaimInvoiceView, CreateStandardInvoiceView } from "views/invoice_views.slint";
+import { CreateCustomInvoiceView, PayInvoiceView, ClaimInvoiceView, CreateStandardInvoiceView } from "views/create_invoice_view.slint";
 import { WelcomeView } from "views/welcome_view.slint";
 import { CreateChannelView } from "views/create_channel_view.slint";
 import { Sidebar } from "components/sidebar.slint";
+import { InvoicesView, InvoiceDetails } from "views/invoices_view.slint";
 
 export enum ActivePage {
     XhPanel,
@@ -42,6 +43,7 @@ export component MainWindow inherits Window {
     callback claim-custom-invoice(string, string); // hash, preimage
     callback create-standard-invoice(string, int); // memo, amount
     callback open-lightning-channel(); // pubkey, amount (New callback for opening channel)
+    callback manage-invoices(); // New callback for listing invoices
     
     // Special callback for updating preimage/hash display
     callback update-preimage-hash(string, string); // preimage, hash
@@ -59,6 +61,9 @@ export component MainWindow inherits Window {
     in-out property <string> create-channel-status-message: "";
     in-out property <string> create-channel-funding-txid: "";
     in-out property <bool> create-channel-in-progress: false;
+    
+    // Property to hold all invoices
+    in-out property <[InvoiceDetails]> all_invoices: [];
     
     // Main app layout with sidebar and status bar
     AppLayout {
@@ -81,7 +86,8 @@ export component MainWindow inherits Window {
             root.create-channel-in-progress = false;
         }
         generate-xh => { root.generate-xh(); }
-        create-custom-invoice => { root.active-page = 2; }
+        manage-invoices => { root.manage-invoices(); }
+        create-custom-invoice => { root.active-page = 3; }
         pay-invoice => { root.active-page = 4; }
         claim-invoice => { root.active-page = 5; }
         create-standard-invoice => { root.active-page = 6; }
@@ -106,8 +112,12 @@ export component MainWindow inherits Window {
                 root.open-lightning-channel();
             }
         }
+
+        if (active-page == 2): InvoicesView {
+            invoices <=> root.all_invoices;
+        }
         
-        if (active-page == 2): CreateCustomInvoiceView {
+        if (active-page == 3): CreateCustomInvoiceView {
             create-clicked(preimage, amount, memo) => {
                 root.create-custom-invoice(preimage, amount, memo);
             }

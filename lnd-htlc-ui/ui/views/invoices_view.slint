@@ -1,0 +1,54 @@
+import { ScrollView, VerticalBox, StandardListView, Button } from "std-widgets.slint";
+
+export struct InvoiceDetails {
+    memo: string,
+    r_hash: string,
+    value: string,
+    state: string,
+    creation_date: string,
+}
+
+export component InvoicesView inherits VerticalBox {
+    // Callback to signal that invoices should be fetched or refreshed
+    callback list-invoices-requested();
+    // Property to hold the list of invoices
+    in-out property <[InvoiceDetails]> invoices: [];
+
+    Text {
+        text: "Invoices";
+        font-size: 24px;
+        font-weight: 700;
+        horizontal-alignment: center;
+        padding-bottom: 20px;
+    }
+
+    ScrollView {
+        viewport-height: 400px; // Adjust as needed
+        if invoices.length == 0 : VerticalBox {
+            Text {
+                text: "No invoices found";
+                horizontal-alignment: center;
+                vertical-alignment: center;
+                color: #888;
+                font-size: 16px;
+            }
+        }
+        if invoices.length > 0 : StandardListView {
+            for invoice_item in invoices: VerticalBox {
+                spacing: 5px;
+                padding: 10px;
+
+                Text { text: "Memo: {invoice_item.memo}"; }
+                Text { text: "R_Hash: {invoice_item.r_hash}"; }
+                Text { text: "Value: {invoice_item.value} sats"; }
+                Text { text: "State: {invoice_item.state}"; }
+                Text { text: "Created: {invoice_item.creation_date}"; }
+
+                Rectangle { // Separator line
+                    height: 1px;
+                    background: #ccc;
+                }
+            }
+        }
+    }
+}

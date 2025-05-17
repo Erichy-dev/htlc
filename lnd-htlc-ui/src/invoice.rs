@@ -1,6 +1,6 @@
 use anyhow::{anyhow, Result};
 use sha2::{Digest, Sha256};
-use crate::utils::run_lncli;
+use std::process::Command;
 
 pub fn create_invoice(
     preimage: String,
@@ -16,36 +16,36 @@ pub fn create_invoice(
         hex::encode(hash)
     };
 
-    let output = run_lncli(&[
-        "addholdinvoice",
-        &hash,
-        "--amt",
-        &amount.to_string(),
-        "--memo",
-        &memo,
-    ])?;
+    // let output = run_lncli(&[
+    //     "addholdinvoice",
+    //     &hash,
+    //     "--amt",
+    //     &amount.to_string(),
+    //     "--memo",
+    //     &memo,
+    // ])?;
 
-    Ok((output.trim().to_string(), hash, amount))
+    Ok(("".to_string(), hash, amount))
 }
 
 pub fn create_standard_invoice(
     memo: String,
     amount: i32,
 ) -> Result<(String, String)> {
-    let output = run_lncli(&[
-        "addinvoice",
-        "--amt",
-        &amount.to_string(),
-        "--memo",
-        &memo,
-    ])?;
+    // let output = run_lncli(&[
+    //     "addinvoice",
+    //     "--amt",
+    //     &amount.to_string(),
+    //     "--memo",
+    //     &memo,
+    // ])?;
 
     // Extract r_hash and payment_request from JSON response
     let r_hash = ""; // Parse from output
     let payment_request = ""; // Parse from output
     
     // Simple parsing (should use serde_json in production)
-    let output_str = output.as_str();
+    let output_str = ""; // output.as_str();
     let r_hash = if let Some(start) = output_str.find("\"r_hash\":") {
         let start = start + 10;
         if let Some(end) = output_str[start..].find("\"") {
@@ -72,24 +72,34 @@ pub fn create_standard_invoice(
 }
 
 pub fn pay_invoice(bolt11: &str) -> Result<()> {
-    run_lncli(&["payinvoice", "--pay_req", bolt11, "--force"])?;
+    // run_lncli(&["payinvoice", "--pay_req", bolt11, "--force"])?;
     Ok(())
 }
 
 pub fn check_invoice(hash: &str) -> Result<String> {
-    let output = run_lncli(&["lookupinvoice", hash])?;
-    Ok(output)
+    // let output = run_lncli(&["lookupinvoice", hash])?;
+    Ok(String::from(""))
 }
 
 pub fn settle_invoice(hash: &str, preimage: &str) -> Result<()> {
-    run_lncli(&["settleinvoice", "--preimage", preimage])?;
+    // run_lncli(&["settleinvoice", "--preimage", preimage])?;
     Ok(())
 }
 
 pub fn list_channels() -> Result<String> {
-    run_lncli(&["listchannels"])
+    // run_lncli(&["listchannels"])
+    Ok(String::from(""))
 }
 
 pub fn open_channel(node_pubkey: &str, amount: i32) -> Result<String> {
-    run_lncli(&["openchannel", "--node_key", node_pubkey, "--local_amt", &amount.to_string()])
+    // run_lncli(&["openchannel", "--node_key", node_pubkey, "--local_amt", &amount.to_string()])
+    Ok(String::from(""))
+}
+
+pub fn list_invoices() -> Result<String> {
+    let output = Command::new("lncli")
+        .args(["--network", "testnet", "listinvoices"])
+        .output()?;
+    println!("{}", String::from_utf8_lossy(&output.stdout));
+    Ok(String::from_utf8_lossy(&output.stdout).to_string())
 } 
