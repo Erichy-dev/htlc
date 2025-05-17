@@ -52,3 +52,5 @@ Cargo.lock
 
 # Project specific
 lit.conf
+
+invoice_data_db/
