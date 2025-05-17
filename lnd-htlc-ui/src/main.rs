@@ -126,6 +126,11 @@ fn update_ui_with_node_info(window_weak: &Arc<slint::Weak<MainWindow>>, node_inf
     if let Some(window) = window_weak.upgrade() {
         window.set_node_is_running(node_info.running);
         
+        // If node is running, wallet must be unlocked
+        if node_info.running {
+            window.set_wallet_needs_unlock(false);
+        }
+        
         let sync_status = if node_info.synced {
             format!("Synced: {} \n(h: {})", node_info.network, node_info.block_height)
         } else {
@@ -133,9 +138,9 @@ fn update_ui_with_node_info(window_weak: &Arc<slint::Weak<MainWindow>>, node_inf
         };
         
         window.set_node_sync_status(SharedString::from(sync_status));
-        window.set_status_checking(true); // Trigger animation
+        window.set_status_checking(true); // Trigger status indicator
         
-        // Reset animation after a short delay
+        // Reset status indicator after a short delay
         let window_weak_clone = window_weak.clone();
         tokio::spawn(async move {
             tokio::time::sleep(Duration::from_secs(1)).await;

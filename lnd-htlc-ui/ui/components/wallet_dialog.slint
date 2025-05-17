@@ -1,100 +1,59 @@
-import { LineEdit } from "std-widgets.slint";
+import { Button, LineEdit, VerticalBox } from "std-widgets.slint";
 
-export component WalletUnlockDialog {
-    in property <bool> show: false;
-    callback unlock-wallet(string);
+export component WalletUnlockDialog inherits Rectangle {
+    in property <bool> show: true;
+    callback unlock-wallet(string); // password
     callback close();
     
-    if root.show: Rectangle {
-        width: 100%;
-        height: 100%;
-        background: #00000088;
+    width: 400px;
+    height: 240px;
+    
+    visible: show;
+    
+    Text {
+        text: "Wallet Unlock Required";
+        font-size: 18px;
+        font-weight: 500;
+        horizontal-alignment: center;
+    }
+    
+    if (!show): Rectangle {
+        Text {
+            text: "Wallet already unlocked";
+            color: #20c997;
+            font-size: 14px;
+            horizontal-alignment: center;
+        }
+    }
+    
+    if (show): VerticalLayout {
+        padding: 16px;
+        spacing: 16px;
         
-        Rectangle {
-            width: 400px;
-            height: 240px;
-            background: #252525;
-            border-radius: 8px;
-            drop-shadow-color: #00000055;
-            drop-shadow-offset-x: 0px;
-            drop-shadow-offset-y: 2px;
-            drop-shadow-blur: 8px;
+        Text {
+            text: "Enter your password to unlock the wallet";
+            horizontal-alignment: center;
+        }
+        
+        password := LineEdit {
+            placeholder-text: "Password";
+            input-type: InputType.password;
+            horizontal-alignment: center;
+        }
+        
+        HorizontalLayout {
+            alignment: center;
+            spacing: 12px;
             
-            VerticalLayout {
-                padding: 20px;
-                spacing: 16px;
-                
-                Text {
-                    text: "Unlock Wallet";
-                    font-size: 20px;
-                    font-weight: 600;
-                    color: #e0e0e0;
-                    horizontal-alignment: center;
-                }
-                
-                Rectangle { height: 1px; background: #3a3a3a; }
-                
-                VerticalLayout {
-                    spacing: 8px;
-                    
-                    Text {
-                        text: "Enter your wallet password:";
-                        color: #e0e0e0;
-                    }
-                    
-                    password := LineEdit {
-                        placeholder-text: "Password";
-                        input-type: InputType.password;
-                        height: 36px;
-                        
-                        accepted => {
-                            root.unlock-wallet(self.text);
-                        }
-                    }
-                }
-                
-                HorizontalLayout {
-                    spacing: 12px;
-                    alignment: end;
-                    
-                    TouchArea {
-                        width: 100px;
-                        Rectangle {
-                            width: 100%;
-                            height: 36px;
-                            border-radius: 4px;
-                            background: #3a3a3a;
-                            
-                            Text {
-                                text: "Cancel";
-                                color: #e0e0e0;
-                                font-size: 14px;
-                                horizontal-alignment: center;
-                                vertical-alignment: center;
-                            }
-                        }
-                        clicked => { root.close(); }
-                    }
-                    
-                    TouchArea {
-                        width: 100px;
-                        Rectangle {
-                            width: 100%;
-                            height: 36px;
-                            border-radius: 4px;
-                            background: #5294e2;
-                            
-                            Text {
-                                text: "Unlock";
-                                color: white;
-                                font-size: 14px;
-                                horizontal-alignment: center;
-                                vertical-alignment: center;
-                            }
-                        }
-                        clicked => { root.unlock-wallet(password.text); }
-                    }
-                }
+            Button {
+                text: "Cancel";
+                clicked => { root.close(); }
+            }
+            
+            Button {
+                text: "Unlock";
+                primary: true;
+                clicked => { root.unlock-wallet(password.text); }
             }
         }
     }
