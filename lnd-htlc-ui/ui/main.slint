@@ -6,6 +6,7 @@ import { AppLayout } from "components/app_layout.slint";
 import { ChannelsView, Channel, PendingChannel } from "views/channels_view.slint";
 import { PreimageView } from "views/preimage_view.slint";
 import { CreateCustomInvoiceView, PayInvoiceView, ClaimInvoiceView, CreateStandardInvoiceView } from "views/invoice_views.slint";
+import { WelcomeView } from "views/welcome_view.slint";
 import { Sidebar } from "components/sidebar.slint";
 
 export enum ActivePage {
@@ -76,6 +77,11 @@ export component MainWindow inherits Window {
         create-standard-invoice => { root.active-page = 6; }
         
         // Main content area based on active page
+        if (active-page == -1): WelcomeView {
+            node-is-running: root.node-is-running;
+            node-sync-status: root.node-sync-status;
+        }
+        
         if (active-page == 0): ChannelsView {
             channels: root.channels;
             pending_channels: root.pending_channels;

@@ -1,0 +1,48 @@
+export component WelcomeView inherits Rectangle {
+    background: transparent;
+    vertical-stretch: 1;
+    horizontal-stretch: 1;
+
+    in property <bool> node-is-running;
+    in property <string> node-sync-status;
+
+    VerticalLayout {
+        spacing: 16px;
+        padding: 20px;
+        alignment: center;
+
+        Text {
+            text: "Welcome to the HTLC Explorer";
+            font-size: 28px;
+            font-weight: 700;
+            color: #e0e0e0;
+            horizontal-alignment: center;
+        }
+
+        Text {
+            text: "Use the sidebar to navigate through the application features.";
+            font-size: 18px;
+            color: #c0c0c0;
+            horizontal-alignment: center;
+        }
+        
+        Rectangle { height: 20px; }
+
+        Image {
+            source: @image-url("images/lightning-logo.png"); // Placeholder, assuming you might have a logo
+            width: 100px;
+            height: 100px;
+            image-fit: contain;
+            horizontal-alignment: center;
+        }
+
+        Rectangle { height: 10px; }
+
+        Text {
+            text: "Current Status: " + (root.node-is-running ? (root.node-sync-status == "synced" ? "Node Synced" : "Node Syncing: " + root.node-sync-status) : "Node Not Running");
+            font-size: 16px;
+            color: #bbbbbb;
+            horizontal-alignment: center;
+        }
+    }
+} 
