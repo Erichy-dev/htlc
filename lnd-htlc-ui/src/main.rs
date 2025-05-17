@@ -6,29 +6,50 @@ mod node;
 use anyhow::Result;
 use slint::SharedString;
 use std::sync::{Arc, Mutex};
+use tokio::sync::oneshot;
 
 use types::AppState;
 use utils::generate_preimage;
-use node::node_status;
+use node::{node_status, NodeInfo};
 
 slint::include_modules!();
 
 #[tokio::main]
 async fn main() -> Result<()> {
-    // Get node status
-    let node_info = node_status();
+    // Spawn node status check in separate thread
+    let (tx, rx) = oneshot::channel();
+    tokio::spawn(async move {
+        let info = node_status();
+        let _ = tx.send(info); // Ignore error if receiver dropped
+    });
 
     let window = MainWindow::new()?;
     let window_weak = Arc::new(window.as_weak());
+
+    // Get node status from background thread
+    let node_info = match rx.await {
+        Ok(info) => info,
+        Err(_) => {
+            println!("Failed to get node status from background thread");
+            // Default values if channel fails
+            NodeInfo {
+                running: false,
+                version: "unknown".to_string(),
+                synced: false,
+                block_height: 0,
+                network: "testnet".to_string(),
+            }
+        }
+    };
 
     // Set up UI with node info
     if let Some(window) = window_weak.upgrade() {
         window.set_node_is_running(node_info.running);
         
         let sync_status = if node_info.synced {
-            format!("Synced to {} (height: {})", node_info.network, node_info.block_height)
+            format!("Synced: {} (h: {})", node_info.network, node_info.block_height)
         } else {
-            format!("Syncing {} (height: {})", node_info.network, node_info.block_height)
+            format!("Syncing: {} (h: {})", node_info.network, node_info.block_height)
         };
         
         window.set_node_sync_status(SharedString::from(sync_status));
