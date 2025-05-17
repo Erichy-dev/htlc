@@ -1,5 +1,6 @@
 import { Sidebar } from "sidebar.slint";
 import { StatusBar } from "status_bar.slint";
+import { Channel, PendingChannel } from "../views/channels_view.slint";
 
 export component AppLayout inherits Rectangle {
     // Properties
@@ -10,6 +11,8 @@ export component AppLayout inherits Rectangle {
     in property <bool> has-error;
     in property <bool> litd-started-by-app;
     in property <bool> status-checking;
+    in property <[Channel]> channels;
+    in property <[PendingChannel]> pending-channels;
     in-out property <int> active-page;
     
     // UI navigation callbacks only

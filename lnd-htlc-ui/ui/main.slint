@@ -3,7 +3,7 @@ import { Invoice, InvoiceItem } from "components/invoice.slint";
 import { WalletUnlockDialog } from "components/wallet_dialog.slint";
 import { ActionButton } from "components/action_button.slint";
 import { AppLayout } from "components/app_layout.slint";
-import { ChannelsView } from "views/channels_view.slint";
+import { ChannelsView, Channel, PendingChannel } from "views/channels_view.slint";
 import { PreimageView } from "views/preimage_view.slint";
 import { CreateCustomInvoiceView, PayInvoiceView, ClaimInvoiceView, CreateStandardInvoiceView } from "views/invoice_views.slint";
 import { Sidebar } from "components/sidebar.slint";
@@ -29,6 +29,8 @@ export component MainWindow inherits Window {
     in property <bool> litd-started-by-app: false;
     in property <string> status-message: "";
     in property <bool> status-checking: false;
+    in property <[Channel]> channels: [];
+    in property <[PendingChannel]> pending_channels: [];
     
     // Callbacks
     callback manage-channels();
@@ -44,7 +46,7 @@ export component MainWindow inherits Window {
     callback update-preimage-hash(string, string); // preimage, hash
     
     // Action page tracking
-    property <int> active-page: 0; // 0 = manage channels, 1 = create channel, 2 = generate x/h, 3 = custom invoice, 4 = pay invoice, 5 = claim invoice, 6 = standard invoice
+    in-out property <int> active-page: 0; // 0 = manage channels, 1 = create channel, 2 = generate x/h, 3 = custom invoice, 4 = pay invoice, 5 = claim invoice, 6 = standard invoice
     
     in property <bool> has-error: false;
     
@@ -61,6 +63,8 @@ export component MainWindow inherits Window {
         has-error: root.has-error;
         litd-started-by-app: root.litd-started-by-app;
         status-checking: root.status-checking;
+        channels: root.channels;
+        pending-channels: root.pending_channels;
         active-page <=> root.active-page;
         
         manage-channels => { root.manage-channels(); }
@@ -72,11 +76,9 @@ export component MainWindow inherits Window {
         create-standard-invoice => { root.active-page = 6; }
         
         // Main content area based on active page
-        if (active-page == 0): Rectangle {
-            Text {
-                text: "Manage Channels View";
-                color: white;
-            }
+        if (active-page == 0): ChannelsView {
+            channels: root.channels;
+            pending_channels: root.pending_channels;
         }
         
         if (active-page == 2): PreimageView {

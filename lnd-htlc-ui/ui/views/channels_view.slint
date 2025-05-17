@@ -1,6 +1,6 @@
 import { ScrollView } from "std-widgets.slint";
 
-// Define our Channel structure
+// Define our Active Channel structure
 export struct Channel {
     channel_id: string,
     remote_pubkey: string,
@@ -10,8 +10,19 @@ export struct Channel {
     active: bool
 }
 
+// Define our Pending Channel structure
+export struct PendingChannel {
+    remote_pubkey: string,
+    channel_point: string, 
+    capacity: string,
+    local_balance: string,
+    remote_balance: string, 
+    status: string
+}
+
 export component ChannelsView {
     in property <[Channel]> channels: [];
+    in property <[PendingChannel]> pending_channels: [];
     
     VerticalLayout {
         spacing: 16px;
@@ -43,21 +54,26 @@ export component ChannelsView {
                         vertical-alignment: center;
                     }
                 }
+                // TODO: Add refresh callback later
             }
         }
         
-        // Channels list
+        // Active Channels list
+        Text {
+            text: "Active Channels";
+            font-size: 18px;
+            font-weight: 500;
+            color: #c0c0c0;
+        }
         if root.channels.length == 0: Rectangle {
-            height: 100px;
-            
+            height: 60px;
             Text {
-                text: "No channels found. Create a new channel to get started.";
+                text: "No active channels found.";
                 color: #bbbbbb;
                 horizontal-alignment: center;
                 vertical-alignment: center;
             }
         }
-        
         if root.channels.length > 0: Rectangle {
             vertical-stretch: 1;
             background: #2a2a2a;
@@ -68,9 +84,9 @@ export component ChannelsView {
                     padding: 16px;
                     spacing: 12px;
                     
-                    for channel in root.channels: Rectangle {
+                    for channel[i] in root.channels: Rectangle {
                         height: 120px;
-                        background: channel.active ? #2d3b2d : #3b2d2d;
+                        background: channel.active ? #2d3b2d : #3b2d2d; // Greenish for active, reddish for inactive (though they should all be active here)
                         border-radius: 4px;
                         
                         VerticalLayout {
@@ -79,49 +95,112 @@ export component ChannelsView {
                             
                             HorizontalLayout {
                                 spacing: 8px;
-                                
                                 Text {
-                                    text: "Channel ID: " + channel.channel_id;
+                                    text: "ID: " + channel.channel_id;
                                     color: #e0e0e0;
                                     font-weight: 500;
                                 }
-                                
                                 Rectangle {
                                     width: 10px;
                                     height: 10px;
                                     border-radius: 5px;
                                     background: channel.active ? #20c997 : #dc3545;
                                 }
-                                
                                 Text {
                                     text: channel.active ? "Active" : "Inactive";
                                     color: channel.active ? #a3ffb0 : #ffb0a3;
                                 }
                             }
-                            
                             Text {
-                                text: "Remote Node: " + channel.remote_pubkey;
+                                text: "Peer: " + channel.remote_pubkey;
                                 color: #e0e0e0;
                                 font-size: 14px;
                                 overflow: elide;
                             }
-                            
                             HorizontalLayout {
                                 spacing: 16px;
-                                
                                 Text {
-                                    text: "Capacity: " + channel.capacity + " sats";
+                                    text: "Cap: " + channel.capacity + " sats";
                                     color: #bbbbbb;
                                 }
-                                
                                 Text {
                                     text: "Local: " + channel.local_balance + " sats";
                                     color: #a3ffb0;
                                 }
-                                
                                 Text {
                                     text: "Remote: " + channel.remote_balance + " sats";
                                     color: #ffb0a3;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        // Pending Channels list
+        Text {
+            text: "Pending Channels";
+            font-size: 18px;
+            font-weight: 500;
+            color: #c0c0c0;
+            padding-top: 10px; 
+        }
+        if root.pending_channels.length == 0: Rectangle {
+            height: 60px;
+            Text {
+                text: "No pending channels.";
+                color: #bbbbbb;
+                horizontal-alignment: center;
+                vertical-alignment: center;
+            }
+        }
+        if root.pending_channels.length > 0: Rectangle {
+            vertical-stretch: 1;
+            background: #2a2a2a;
+            border-radius: 8px;
+            
+            ScrollView {
+                VerticalLayout {
+                    padding: 16px;
+                    spacing: 12px;
+                    
+                    for p_channel[i] in root.pending_channels: Rectangle {
+                        height: 100px; // Slightly smaller for pending
+                        background: #333333; // Neutral background
+                        border-radius: 4px;
+                        
+                        VerticalLayout {
+                            padding: 12px;
+                            spacing: 8px;
+                            
+                            HorizontalLayout {
+                                spacing: 8px;
+                                Text {
+                                    text: "Peer: " + p_channel.remote_pubkey;
+                                    color: #e0e0e0;
+                                    font-weight: 500;
+                                }
+                                Text {
+                                    text: "Status: " + p_channel.status;
+                                    color: #f0ad4e; // Orange for pending status
+                                }
+                            }
+                             Text {
+                                text: "Channel Point: " + p_channel.channel_point;
+                                color: #e0e0e0;
+                                font-size: 13px;
+                                overflow: elide;
+                            }
+                            HorizontalLayout {
+                                spacing: 16px;
+                                Text {
+                                    text: "Cap: " + p_channel.capacity + " sats";
+                                    color: #bbbbbb;
+                                }
+                                Text {
+                                    text: "Local: " + p_channel.local_balance + " sats";
+                                    color: #a3ffb0;
                                 }
                             }
                         }

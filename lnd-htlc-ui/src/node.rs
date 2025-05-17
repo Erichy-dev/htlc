@@ -27,7 +27,7 @@ pub fn node_status() -> NodeInfo {
         Ok(output) => {
             if output.status.success() {
                 let stdout = String::from_utf8_lossy(&output.stdout);
-                println!("lncli --network testnet getinfo result:\n{}", stdout);
+                // println!("lncli --network testnet getinfo result:\n{}", stdout);
 
                 // Set node as running since command was successful
                 node_running = true;
