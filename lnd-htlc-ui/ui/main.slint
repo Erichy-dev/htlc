@@ -4,7 +4,6 @@ import { WalletUnlockDialog } from "components/wallet_dialog.slint";
 import { ActionButton } from "components/action_button.slint";
 import { AppLayout } from "components/app_layout.slint";
 import { ChannelsView } from "views/channels_view.slint";
-import { CreateChannelView } from "views/channel_creation_view.slint";
 import { PreimageView } from "views/preimage_view.slint";
 import { CreateCustomInvoiceView, PayInvoiceView, ClaimInvoiceView, CreateStandardInvoiceView } from "views/invoice_views.slint";
 import { Sidebar } from "components/sidebar.slint";
@@ -65,7 +64,7 @@ export component MainWindow inherits Window {
         active-page <=> root.active-page;
         
         manage-channels => { root.manage-channels(); }
-        create-channel => { root.active-page = 1; }
+        create-channel => { root.create-channel(); }
         generate-xh => { root.generate-xh(); }
         create-custom-invoice => { root.active-page = 3; }
         pay-invoice => { root.active-page = 4; }
@@ -77,12 +76,6 @@ export component MainWindow inherits Window {
             Text {
                 text: "Manage Channels View";
                 color: white;
-            }
-        }
-        
-        if (active-page == 1): CreateChannelView {
-            connect-peer(pubkey, host, port) => {
-                root.connect-peer(pubkey, host, port);
             }
         }
         

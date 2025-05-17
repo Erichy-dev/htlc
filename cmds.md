@@ -9,7 +9,7 @@ lncli --network testnet walletbalance
 
 lncli --network testnet listpeers
 
-lncli --network testnet get <pub-key>
+lncli --network testnet getnodeinfo <pub-key>
 
 lncli --network testnet connect <node-pub-key@ip:port>
 

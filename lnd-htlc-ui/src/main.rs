@@ -169,6 +169,45 @@ async fn main() -> Result<()> {
         }
     });
 
+    let window_weak_clone = window_weak.clone();
+    window.on_create_channel(move || {
+        println!("Create Channel View clicked");
+        
+        // Launch auto channel creation in a separate thread
+        let window_weak_for_channel = window_weak_clone.clone();
+        tokio::spawn(async move {
+            if let Some(window) = window_weak_for_channel.upgrade() {
+                window.set_status_message(SharedString::from(
+                    "Automatically opening channel with a peer..."
+                ));
+            }
+            
+            // Call the auto channel function with 20000 sats
+            match channels::auto_open_channel(20000) {
+                Ok(result) => {
+                    if let Some(window) = window_weak_for_channel.upgrade() {
+                        window.set_status_message(SharedString::from(
+                            "Channel opened successfully!"
+                        ));
+                    }
+                    println!("Auto channel result: {}", result);
+                },
+                Err(e) => {
+                    if let Some(window) = window_weak_for_channel.upgrade() {
+                        window.set_status_message(SharedString::from(
+                            format!("Failed to open channel: {}", e)
+                        ));
+                    }
+                    println!("Auto channel error: {}", e);
+                }
+            }
+        });
+        
+        // if let Some(window) = window_weak_clone.upgrade() {
+        //     window.set_active_page(1); // Still show channel creation view
+        // }
+    });
+
     window.run()?;
     Ok(())
 }
