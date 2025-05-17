@@ -58,7 +58,8 @@ def has_valid_address(addresses):
             return True
     return False
 
-def find_first_non_tor_node(node_pubkeys):
+def find_all_non_tor_nodes(node_pubkeys):
+    non_tor_nodes = []
     for i, pubkey in enumerate(node_pubkeys, 1):
         print(f"\rChecking node {i}/{len(node_pubkeys)}...", end='', file=sys.stderr)
         node_info = get_node_info(pubkey)
@@ -66,14 +67,13 @@ def find_first_non_tor_node(node_pubkeys):
         if node_info and 'node' in node_info:
             addresses = node_info['node'].get('addresses', [])
             if has_valid_address(addresses):
-                print("\n")  # New line after progress
-                return {
+                non_tor_nodes.append({
                     'pubkey': pubkey,
                     'alias': node_info['node'].get('alias', 'Unknown'),
                     'addresses': [addr['addr'] for addr in addresses]
-                }
+                })
     print("\n")  # New line after progress
-    return None
+    return non_tor_nodes
 
 def main():
     # Get all edges from the graph
@@ -86,18 +86,20 @@ def main():
         node_pubkeys.add(edge['node2_pub'])
     
     print(f"Found {len(node_pubkeys)} unique nodes")
-    print("\nSearching for first non-Tor node...")
+    print("\nSearching for non-Tor nodes...")
     
-    non_tor_node = find_first_non_tor_node(node_pubkeys)
+    non_tor_nodes = find_all_non_tor_nodes(node_pubkeys)
     
-    if non_tor_node:
-        print("\nFound non-Tor node:")
+    if non_tor_nodes:
+        print(f"\nFound {len(non_tor_nodes)} non-Tor nodes:")
         print("===================")
-        print(f"\nAlias: {non_tor_node['alias']}")
-        print(f"Pubkey: {non_tor_node['pubkey']}")
-        print("Addresses:")
-        for addr in non_tor_node['addresses']:
-            print(f"  - {addr}")
+        
+        for i, node in enumerate(non_tor_nodes, 1):
+            print(f"\n{i}. Alias: {node['alias']}")
+            print(f"   Pubkey: {node['pubkey']}")
+            print("   Addresses:")
+            for addr in node['addresses']:
+                print(f"     - {addr}")
     else:
         print("\nNo non-Tor nodes found with valid addresses.")
 
