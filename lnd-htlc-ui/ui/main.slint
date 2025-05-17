@@ -4,7 +4,6 @@ import { WalletUnlockDialog } from "components/wallet_dialog.slint";
 import { ActionButton } from "components/action_button.slint";
 import { AppLayout } from "components/app_layout.slint";
 import { ChannelsView, Channel, PendingChannel } from "views/channels_view.slint";
-import { PreimageView } from "views/preimage_view.slint";
 import { CreateCustomInvoiceView, PayInvoiceView, ClaimInvoiceView, CreateStandardInvoiceView } from "views/invoice_views.slint";
 import { WelcomeView } from "views/welcome_view.slint";
 import { CreateChannelView } from "views/create_channel_view.slint";
@@ -82,7 +81,7 @@ export component MainWindow inherits Window {
             root.create-channel-in-progress = false;
         }
         generate-xh => { root.generate-xh(); }
-        create-custom-invoice => { root.active-page = 3; }
+        create-custom-invoice => { root.active-page = 2; }
         pay-invoice => { root.active-page = 4; }
         claim-invoice => { root.active-page = 5; }
         create-standard-invoice => { root.active-page = 6; }
@@ -108,13 +107,7 @@ export component MainWindow inherits Window {
             }
         }
         
-        if (active-page == 2): PreimageView {
-            current-preimage: root.current-preimage;
-            current-hash: root.current-hash;
-            generate-clicked => { root.generate-xh(); }
-        }
-        
-        if (active-page == 3): CreateCustomInvoiceView {
+        if (active-page == 2): CreateCustomInvoiceView {
             create-clicked(preimage, amount, memo) => {
                 root.create-custom-invoice(preimage, amount, memo);
             }

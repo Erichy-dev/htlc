@@ -71,28 +71,28 @@ export component CreateCustomInvoiceView {
                         height: 36px;
                     }
                 }
+
+                Rectangle {
+                    height: 8px;
+                }
                 
-                HorizontalLayout {
-                    alignment: end;
-                    
-                    TouchArea {
-                        Rectangle {
-                            width: 160px;
-                            height: 42px;
-                            border-radius: 4px;
-                            background: #5294e2;
-                            
-                            Text {
-                                text: "Create Invoice";
-                                color: white;
-                                font-weight: 600;
-                                horizontal-alignment: center;
-                                vertical-alignment: center;
-                            }
+                TouchArea {
+                    Rectangle {
+                        width: 160px;
+                        height: 42px;
+                        border-radius: 4px;
+                        background: #5294e2;
+                        
+                        Text {
+                            text: "Create Invoice";
+                            color: white;
+                            font-weight: 600;
+                            horizontal-alignment: center;
+                            vertical-alignment: center;
                         }
-                        clicked => {
-                            root.create-clicked(preimage.text, amount.text, memo.text);
-                        }
+                    }
+                    clicked => {
+                        root.create-clicked(preimage.text, amount.text, memo.text);
                     }
                 }
             }
