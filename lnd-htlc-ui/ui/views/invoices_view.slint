@@ -38,15 +38,86 @@ export component InvoicesView inherits VerticalBox {
                 spacing: 5px;
                 padding: 10px;
 
-                Text { text: "Memo: {invoice_item.memo}"; }
-                Text { text: "R_Hash: {invoice_item.r_hash}"; }
-                Text { text: "Value: {invoice_item.value} sats"; }
-                Text { text: "State: {invoice_item.state}"; }
-                Text { text: "Created: {invoice_item.creation_date}"; }
+                Rectangle {
+                    background: #2a2a2a;
+                    border-radius: 8px;
+                    drop-shadow-color: #00000080;
+                    drop-shadow-offset-x: 0px;
+                    drop-shadow-offset-y: 2px;
+                    drop-shadow-blur: 4px;
+                    padding: 16px;
 
-                Rectangle { // Separator line
-                    height: 1px;
-                    background: #ccc;
+                    VerticalLayout {
+                        spacing: 12px;
+
+                        HorizontalLayout {
+                            spacing: 16px;
+
+                            VerticalLayout {
+                                Text { 
+                                    text: invoice_item.memo;
+                                    font-size: 18px;
+                                    font-weight: 600;
+                                    color: #ffffff;
+                                }
+
+                                HorizontalLayout {
+                                    spacing: 8px;
+                                    alignment: start;
+
+                                    Rectangle {
+                                        width: 12px;
+                                        padding: 4px;
+                                        height: 12px;
+                                        border-radius: 6px;
+                                        background: invoice_item.state == "SETTLED" ? #4caf50 : #ffc107;
+                                    }
+
+                                    Text {
+                                        text: invoice_item.state;
+                                        font-size: 14px;
+                                        color: invoice_item.state == "SETTLED" ? #4caf50 : #ffc107;
+                                    }
+                                }
+                            }
+
+                            Rectangle {
+                                width: 1px;
+                                background: #404040;
+                            }
+
+                            VerticalLayout {
+                                alignment: center;
+                                Text {
+                                    text: invoice_item.value + " sats";
+                                    font-size: 20px;
+                                    font-weight: 700;
+                                    color: #5294e2;
+                                }
+                                Text {
+                                    text: invoice_item.creation_date;
+                                    font-size: 12px;
+                                    color: #808080;
+                                }
+                            }
+                        }
+
+                        Rectangle {
+                            height: 1px;
+                            background: #e4e0e0;
+                        }
+
+                        Text {
+                            text: "Hash: " + invoice_item.r_hash;
+                            font-size: 12px;
+                            color: #e4e0e0;
+                            opacity: 0.7;
+                        }
+                    }
+                }
+
+                Rectangle {
+                    height: 8px;
                 }
             }
         }

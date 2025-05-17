@@ -11,6 +11,7 @@ use std::rc::Rc;
 use std::sync::{Arc, Mutex};
 use tokio::sync::mpsc;
 use tokio::time::{interval, Duration};
+use chrono::{DateTime, NaiveDateTime, Utc};
 
 use types::AppState;
 use utils::generate_preimage;
@@ -289,12 +290,29 @@ async fn main() -> Result<()> {
                     // Attempt to parse the JSON
                     match serde_json::from_str::<ListInvoicesResponse>(&invoices_json_str) {
                         Ok(parsed_response) => {
-                            let slint_invoices_vec: Vec<InvoiceDetails> = parsed_response.invoices.into_iter().map(|i| InvoiceDetails {
-                                memo: i.memo.into(),
-                                r_hash: i.r_hash.into(),
-                                value: i.value.into(),
-                                state: i.state.into(),
-                                creation_date: i.creation_date.into(), // Consider formatting this from timestamp if needed
+                            let slint_invoices_vec: Vec<InvoiceDetails> = parsed_response.invoices.into_iter().map(|i| {
+                                let formatted_date = match i.creation_date.parse::<i64>() {
+                                    Ok(timestamp_seconds) => {
+                                        // Ensure NaiveDateTime::from_timestamp_opt is used for safety
+                                        NaiveDateTime::from_timestamp_opt(timestamp_seconds, 0)
+                                            .map(|naive_dt| DateTime::<Utc>::from_naive_utc_and_offset(naive_dt, Utc).format("%Y-%m-%d %H:%M:%S UTC").to_string())
+                                            .unwrap_or_else(|| {
+                                                println!("Warning: Failed to format timestamp {} for r_hash {}", timestamp_seconds, i.r_hash);
+                                                i.creation_date.clone() // Fallback to original string
+                                            })
+                                    }
+                                    Err(e) => {
+                                        println!("Warning: Failed to parse creation_date '{}' as i64 for r_hash {}: {}", i.creation_date, i.r_hash, e);
+                                        i.creation_date.clone() // Fallback to original string if timestamp is not a valid i64
+                                    }
+                                };
+                                InvoiceDetails {
+                                    memo: i.memo.into(),
+                                    r_hash: i.r_hash.into(),
+                                    value: i.value.into(),
+                                    state: i.state.into(),
+                                    creation_date: formatted_date.into(),
+                                }
                             }).collect();
 
                             let _ = slint::invoke_from_event_loop(move || {
