@@ -80,118 +80,116 @@ export component Sidebar inherits Rectangle {
             }
         }
         
-        // Channels section
-        Text {
-            text: "Channels";
-            font-size: 16px;
-            font-weight: 600;
-            color: #d0d0d0;
-        }
-        
-        Rectangle {
-            height: 80px;
-            VerticalLayout {
-                spacing: 8px;
-                
-                TouchArea {
-                    Rectangle {
-                        height: 34px;
-                        width: 100%;
-                        background: #333333;
-                        border-radius: 4px;
-                        
-                        Text {
-                            text: "Manage Channels";
-                            color: white;
-                            horizontal-alignment: center;
-                            vertical-alignment: center;
-                        }
-                    }
-                    clicked => { root.manage-channels(); }
+        VerticalLayout {
+            spacing: 8px;
+
+            // Channels section
+            Rectangle {
+                Text {
+                    text: "Channels";
+                    font-size: 16px;
+                    font-weight: 600;
+                    color: #d0d0d0;
                 }
-                
-                TouchArea {
-                    Rectangle {
-                        height: 34px;
-                        width: 100%;
-                        background: #333333;
-                        border-radius: 4px;
-                        
-                        Text {
-                            text: "Create Channel";
-                            color: white;
-                            horizontal-alignment: center;
-                            vertical-alignment: center;
-                        }
+            }
+            
+            TouchArea {
+                Rectangle {
+                    height: 34px;
+                    width: 100%;
+                    background: #333333;
+                    border-radius: 4px;
+                    
+                    Text {
+                        text: "Manage Channels";
+                        color: white;
+                        horizontal-alignment: center;
+                        vertical-alignment: center;
                     }
-                    clicked => { root.create-channel(); }
                 }
+                clicked => { root.manage-channels(); }
+            }
+            
+            TouchArea {
+                Rectangle {
+                    height: 34px;
+                    width: 100%;
+                    background: #333333;
+                    border-radius: 4px;
+                    
+                    Text {
+                        text: "Create Channel";
+                        color: white;
+                        horizontal-alignment: center;
+                        vertical-alignment: center;
+                    }
+                }
+                clicked => { root.create-channel(); }
             }
         }
         
-        // Invoice section
-        Text {
-            text: "Payments";
-            font-size: 16px;
-            font-weight: 600;
-            color: #d0d0d0;
-        }
-        
-        Rectangle {
-            height: 165px;
-            VerticalLayout {
-                spacing: 8px;
-                
-                TouchArea {
-                    Rectangle {
-                        height: 34px;
-                        width: 100%;
-                        background: #333333;
-                        border-radius: 4px;
-                        
-                        Text {
-                            text: "Create Custom Invoice";
-                            color: white;
-                            horizontal-alignment: center;
-                            vertical-alignment: center;
-                        }
-                    }
-                    clicked => { root.create-custom-invoice(); }
+        VerticalLayout {
+            spacing: 8px;
+
+            // Invoice section
+            Rectangle {
+                Text {
+                    text: "Payments";
+                    font-size: 16px;
+                    font-weight: 600;
+                    color: #d0d0d0;
                 }
-                
-                TouchArea {
-                    Rectangle {
-                        height: 34px;
-                        width: 100%;
-                        background: #333333;
-                        border-radius: 4px;
-                        
-                        Text {
-                            text: "Pay Invoice";
-                            color: white;
-                            horizontal-alignment: center;
-                            vertical-alignment: center;
-                        }
+            }
+            
+            TouchArea {
+                Rectangle {
+                    height: 34px;
+                    width: 100%;
+                    background: #333333;
+                    border-radius: 4px;
+                    
+                    Text {
+                        text: "Create Custom Invoice";
+                        color: white;
+                        horizontal-alignment: center;
+                        vertical-alignment: center;
                     }
-                    clicked => { root.pay-invoice(); }
                 }
-                
-                TouchArea {
-                    Rectangle {
-                        height: 34px;
-                        width: 100%;
-                        background: #333333;
-                        border-radius: 4px;
-                        
-                        Text {
-                            text: "Settle With Preimage";
-                            color: white;
-                            horizontal-alignment: center;
-                            vertical-alignment: center;
-                        }
+                clicked => { root.create-custom-invoice(); }
+            }
+            
+            TouchArea {
+                Rectangle {
+                    height: 34px;
+                    width: 100%;
+                    background: #333333;
+                    border-radius: 4px;
+                    
+                    Text {
+                        text: "Pay Invoice";
+                        color: white;
+                        horizontal-alignment: center;
+                        vertical-alignment: center;
                     }
-                    clicked => { root.claim-invoice(); }
                 }
+                clicked => { root.pay-invoice(); }
+            }
+            
+            TouchArea {
+                Rectangle {
+                    height: 34px;
+                    width: 100%;
+                    background: #333333;
+                    border-radius: 4px;
+                    
+                    Text {
+                        text: "Settle With Preimage";
+                        color: white;
+                        horizontal-alignment: center;
+                        vertical-alignment: center;
+                    }
+                }
+                clicked => { root.claim-invoice(); }
             }
         }
     }
