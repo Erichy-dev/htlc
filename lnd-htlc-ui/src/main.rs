@@ -5,7 +5,7 @@ mod node;
 mod channels;
 
 use anyhow::Result;
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use slint::{Model, ModelRc, SharedString, VecModel};
 use std::rc::Rc;
 use std::sync::{Arc, Mutex};
@@ -36,10 +36,28 @@ struct ListInvoicesResponse {
     // last_index_offset, first_index_offset if you need pagination
 }
 
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct InvoiceData {
+    preimage_x: String,
+    preimage_h: String,
+    payment_address: String,
+}
+
 #[tokio::main]
 async fn main() -> Result<()> {
     // Create channel for node status updates
     let (tx_node_status, mut rx_node_status) = mpsc::channel(10);
+
+    // Initialize sled database
+    let db = match sled::open("invoice_data_db") {
+        Ok(db) => db,
+        Err(e) => {
+            eprintln!("CRITICAL: Failed to open sled database 'invoice_data_db': {}. Please check permissions and disk space.", e);
+            // For a real application, you might want to inform the user more gracefully or attempt a fallback.
+            // For now, we'll panic as persistence is key to the request.
+            panic!("Failed to open database: {}", e);
+        }
+    };
     
     // Spawn task to check node status in intervals
     tokio::spawn(async move {
@@ -326,21 +344,17 @@ async fn main() -> Result<()> {
     });
 
     let window_weak_clone = window_weak.clone();
+    let db_clone_for_create = db.clone();
     window.on_create_custom_invoice(move |preimage, amount, memo| {
         if let Some(window) = window_weak_clone.upgrade() {
             println!("Creating custom invoice with preimage: {}, amount: {}, memo: {}", preimage, amount, memo);
-            match invoice::create_invoice(preimage.to_string(), amount.to_string(), memo.to_string()) {
+            match invoice::create_invoice(preimage.to_string(), amount.to_string(), memo.to_string(), &db_clone_for_create) {
                 Ok(output) => {
                     window.set_status_message(SharedString::from(format!(
                         "Created invoice with preimage: {}, amount: {}, memo: {}",
                         preimage, amount, memo
                     )));
-                    // Parse JSON output to get payment_addr
-                    if let Ok(json) = serde_json::from_str::<serde_json::Value>(&output) {
-                        if let Some(payment_addr) = json.get("payment_addr").and_then(|v| v.as_str()) {
-                            window.set_payment_address(SharedString::from(payment_addr));
-                        }
-                    }
+                    window.set_payment_address(SharedString::from(output));
                     window.set_generated_preimage_h(SharedString::from(""));
                     window.set_generated_preimage_x(SharedString::from(""));
                 }
