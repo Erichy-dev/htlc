@@ -20,12 +20,17 @@ export struct PendingChannel {
     status: string
 }
 
-export component ChannelsView {
+export component ChannelsView inherits Rectangle {
     in property <[Channel]> channels: [];
     in property <[PendingChannel]> pending_channels: [];
     
+    background: transparent;
+    vertical-stretch: 1;
+    horizontal-stretch: 1;
+    
     VerticalLayout {
         spacing: 16px;
+        padding: 10px;
         
         // Header
         HorizontalLayout {
@@ -37,24 +42,6 @@ export component ChannelsView {
                 font-size: 24px;
                 font-weight: 600;
                 color: #e0e0e0;
-            }
-            
-            TouchArea {
-                Rectangle {
-                    width: 120px;
-                    height: 36px;
-                    border-radius: 4px;
-                    background: #5294e2;
-                    
-                    Text {
-                        text: "Refresh";
-                        color: white;
-                        font-weight: 500;
-                        horizontal-alignment: center;
-                        vertical-alignment: center;
-                    }
-                }
-                // TODO: Add refresh callback later
             }
         }
         
@@ -76,10 +63,13 @@ export component ChannelsView {
         }
         if root.channels.length > 0: Rectangle {
             vertical-stretch: 1;
+            horizontal-stretch: 1;
             background: #2a2a2a;
             border-radius: 8px;
             
             ScrollView {
+                vertical-stretch: 1;
+                horizontal-stretch: 1;
                 VerticalLayout {
                     padding: 16px;
                     spacing: 12px;
@@ -157,10 +147,13 @@ export component ChannelsView {
         }
         if root.pending_channels.length > 0: Rectangle {
             vertical-stretch: 1;
+            horizontal-stretch: 1;
             background: #2a2a2a;
             border-radius: 8px;
             
             ScrollView {
+                vertical-stretch: 1;
+                horizontal-stretch: 1;
                 VerticalLayout {
                     padding: 16px;
                     spacing: 12px;

@@ -46,7 +46,7 @@ export component MainWindow inherits Window {
     callback update-preimage-hash(string, string); // preimage, hash
     
     // Action page tracking
-    in-out property <int> active-page: 0; // 0 = manage channels, 1 = create channel, 2 = generate x/h, 3 = custom invoice, 4 = pay invoice, 5 = claim invoice, 6 = standard invoice
+    in-out property <int> active-page: -1; // 0 = manage channels, 1 = create channel, 2 = generate x/h, 3 = custom invoice, 4 = pay invoice, 5 = claim invoice, 6 = standard invoice
     
     in property <bool> has-error: false;
     

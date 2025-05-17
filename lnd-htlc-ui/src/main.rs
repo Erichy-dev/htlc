@@ -5,7 +5,7 @@ mod node;
 mod channels;
 
 use anyhow::Result;
-use slint::{SharedString, VecModel, ModelRc};
+use slint::{Model, ModelRc, SharedString, VecModel};
 use std::rc::Rc;
 use std::sync::{Arc, Mutex};
 use tokio::sync::mpsc;
@@ -52,54 +52,64 @@ async fn main() -> Result<()> {
     let window_weak_clone = window_weak.clone();
     window.on_manage_channels(move || {
         println!("Manage Channels clicked - fetching channel data...");
-        let ui_handle = window_weak_clone.clone();
+        let ui_handle_weak = window_weak_clone.clone(); // Keep it weak for the spawn
+
         tokio::spawn(async move {
-            let active_channels_data = channels::list_active_channels();
-            let pending_channels_data = channels::list_pending_channels();
+            let active_channels_result = channels::list_active_channels();
+            let pending_channels_result = channels::list_pending_channels();
 
-            if let Some(window) = ui_handle.upgrade() {
-                match active_channels_data {
-                    Ok(active_list) => {
-                        let slint_active_channels: Vec<Channel> = active_list.into_iter().map(|ac| Channel {
-                            channel_id: ac.channel_id.into(),
-                            remote_pubkey: ac.remote_pubkey.into(),
-                            capacity: ac.capacity.into(),
-                            local_balance: ac.local_balance.into(),
-                            remote_balance: ac.remote_balance.into(),
-                            active: ac.active,
-                        }).collect();
-                        window.set_channels(ModelRc::new(VecModel::from(slint_active_channels)));
-                        window.set_status_message("Active channels loaded.".into());
+            // Now, schedule the UI update on the Slint event loop
+            let _ = slint::invoke_from_event_loop(move || {
+                // This closure now executes on the Slint event loop
+                // Re-upgrade inside the closure, as it's a new context, though window was upgraded just before
+                if let Some(window_on_event_loop) = ui_handle_weak.upgrade() {
+                    match active_channels_result {
+                        Ok(active_list) => {
+                            let slint_active_channels: Vec<Channel> = active_list.into_iter().map(|ac| Channel {
+                                channel_id: ac.channel_id.into(),
+                                remote_pubkey: ac.remote_pubkey.into(),
+                                capacity: ac.capacity.into(),
+                                local_balance: ac.local_balance.into(),
+                                remote_balance: ac.remote_balance.into(),
+                                active: ac.active,
+                            }).collect();
+                            window_on_event_loop.set_channels(ModelRc::new(VecModel::from(slint_active_channels)));
+                            window_on_event_loop.set_status_message("Active channels loaded.".into());
+                        }
+                        Err(e) => {
+                            println!("Error listing active channels: {}", e);
+                            window_on_event_loop.set_status_message(format!("Error loading active channels: {}", e).into());
+                        }
                     }
-                    Err(e) => {
-                        println!("Error listing active channels: {}", e);
-                        window.set_status_message(format!("Error loading active channels: {}", e).into());
-                    }
-                }
 
-                match pending_channels_data {
-                    Ok(pending_list) => {
-                        let slint_pending_channels: Vec<PendingChannel> = pending_list.into_iter().map(|pc| PendingChannel {
-                            remote_pubkey: pc.remote_node_pub.into(),
-                            channel_point: pc.channel_point.into(),
-                            capacity: pc.capacity.into(),
-                            local_balance: pc.local_balance.into(),
-                            remote_balance: pc.remote_balance.into(),
-                            status: pc.status.into(),
-                        }).collect();
-                        window.set_pending_channels(ModelRc::new(VecModel::from(slint_pending_channels)));
-                         // Append to status message or set a new one
-                        let current_status = window.get_status_message();
-                        window.set_status_message(format!("{} Pending channels loaded.", current_status).into());
+                    match pending_channels_result {
+                        Ok(pending_list) => {
+                            let slint_pending_channels: Vec<PendingChannel> = pending_list.into_iter().map(|pc| PendingChannel {
+                                remote_pubkey: pc.remote_node_pub.into(),
+                                channel_point: pc.channel_point.into(),
+                                capacity: pc.capacity.into(),
+                                local_balance: pc.local_balance.into(),
+                                remote_balance: pc.remote_balance.into(),
+                                status: pc.status.into(),
+                            }).collect();
+                            window_on_event_loop.set_pending_channels(ModelRc::new(VecModel::from(slint_pending_channels)));
+                            let current_status = window_on_event_loop.get_status_message();
+                            window_on_event_loop.set_status_message(format!("{} Pending channels loaded.", current_status).into());
+                        }
+                        Err(e) => {
+                            println!("Error listing pending channels: {}", e);
+                            let current_status = window_on_event_loop.get_status_message();
+                            window_on_event_loop.set_status_message(format!("{} Error loading pending channels: {}", current_status, e).into());
+                        }
                     }
-                    Err(e) => {
-                        println!("Error listing pending channels: {}", e);
-                        let current_status = window.get_status_message();
-                        window.set_status_message(format!("{} Error loading pending channels: {}", current_status, e).into());
-                    }
+                    println!("Slint invoke: Active Ch: {}, Pending Ch: {}. Navigating to page 0.",
+                    window_on_event_loop.get_channels().iter().len(),
+                    window_on_event_loop.get_pending_channels().iter().len());
+                    window_on_event_loop.set_active_page(0i32); // Navigate to channels view (page 0)
+                } else {
+                        println!("Window disappeared before UI update could be scheduled on event loop.");
                 }
-                window.set_active_page(0i32); // Navigate to channels view (page 0)
-            }
+            });
         });
     });
 

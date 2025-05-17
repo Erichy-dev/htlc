@@ -61,7 +61,6 @@ pub fn list_active_channels() -> Result<Vec<ActiveChannelInfo>> {
 
     if output.status.success() {
         let stdout = String::from_utf8_lossy(&output.stdout);
-        println!("Active channels output: {}", stdout);
         let json: Value = serde_json::from_str(&stdout)
             .map_err(|e| anyhow!("Failed to parse active channels JSON: {}\nOutput: {}", e, stdout))?;
         
@@ -86,6 +85,7 @@ pub fn list_active_channels() -> Result<Vec<ActiveChannelInfo>> {
             };
             channels_info.push(channel);
         }
+        println!("Active Channels Info: {:?}", channels_info);
         Ok(channels_info)
     } else {
         let stderr = String::from_utf8_lossy(&output.stderr);
@@ -100,7 +100,6 @@ pub fn list_pending_channels() -> Result<Vec<PendingChannelInfo>> {
 
     if output.status.success() {
         let stdout = String::from_utf8_lossy(&output.stdout);
-        println!("Pending channels output: {}", stdout);
         let json: Value = serde_json::from_str(&stdout)
             .map_err(|e| anyhow!("Failed to parse pending channels JSON: {}\nOutput: {}", e, stdout))?;
 
@@ -134,6 +133,8 @@ pub fn list_pending_channels() -> Result<Vec<PendingChannelInfo>> {
         process_pending_category("pending_closing_channels", "Closing", &mut pending_infos, &json);
         process_pending_category("pending_force_closing_channels", "Force Closing", &mut pending_infos, &json);
         process_pending_category("waiting_close_channels", "Waiting Close", &mut pending_infos, &json);
+
+        println!("Pending Channels Info: {:?}", pending_infos);
 
         Ok(pending_infos)
     } else {
