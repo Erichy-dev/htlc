@@ -7,13 +7,31 @@ import { ChannelsView } from "views/channels_view.slint";
 import { CreateChannelView } from "views/channel_creation_view.slint";
 import { PreimageView } from "views/preimage_view.slint";
 import { CreateCustomInvoiceView, PayInvoiceView, ClaimInvoiceView, CreateStandardInvoiceView } from "views/invoice_views.slint";
+import { Sidebar } from "components/sidebar.slint";
+
+export enum ActivePage {
+    XhPanel,
+    InvoicePanel,
+    PaymentPanel,
+    ClaimPanel,
+    StandardInvoicePanel,
+}
 
 export component MainWindow inherits Window {
-    title: "Lightning Network Manager";
-    min-width: 900px;
-    min-height: 600px;
+    title: "Lightning Network - HTLC Explorer";
+    width: 1000px;
+    height: 680px;
+    background: #222222;
     
-    // UI navigation callbacks only
+    // Properties settable by the application
+    in property <bool> node-is-running: false;
+    in property <string> node-sync-status: "unknown";
+    in property <bool> wallet-needs-unlock: false;
+    in property <bool> litd-started-by-app: false;
+    in property <string> status-message: "";
+    in property <bool> status-checking: false;
+    
+    // Callbacks
     callback manage-channels();
     callback create-channel();
     callback generate-xh();
@@ -28,26 +46,12 @@ export component MainWindow inherits Window {
     // Action page tracking
     property <int> active-page: 0; // 0 = manage channels, 1 = create channel, 2 = generate x/h, 3 = custom invoice, 4 = pay invoice, 5 = claim invoice, 6 = standard invoice
     
-    in property <[Invoice]> invoices: [];
-    in property <string> status-message: "UI Demo Mode - API connectivity disabled";
-    
-    // Simplified UI state properties
-    in property <bool> node-is-running: true;  // Default to true in demo mode
-    in property <string> node-sync-status: "Demo Mode";
-    in property <bool> wallet-needs-unlock: false;
-    in property <bool> litd-started-by-app: true;
-    property <bool> has-error: false;
+    in property <bool> has-error: false;
     
     // Local storage for preimage and hash
-    property <string> current-preimage: "";
-    property <string> current-hash: "";
+    property <string> current-preimage;
+    property <string> current-hash;
     
-    // Handle the update callback
-    update-preimage-hash(preimage, hash) => {
-        root.current-preimage = preimage;
-        root.current-hash = hash;
-    }
-
     // Main app layout with sidebar and status bar
     AppLayout {
         node-is-running: root.node-is-running;
@@ -56,6 +60,7 @@ export component MainWindow inherits Window {
         status-message: root.status-message;
         has-error: root.has-error;
         litd-started-by-app: root.litd-started-by-app;
+        status-checking: root.status-checking;
         active-page <=> root.active-page;
         
         manage-channels => { root.manage-channels(); }
@@ -67,10 +72,18 @@ export component MainWindow inherits Window {
         create-standard-invoice => { root.active-page = 6; }
         
         // Main content area based on active page
-        if (active-page == 0): ChannelsView {
+        if (active-page == 0): Rectangle {
+            Text {
+                text: "Manage Channels View";
+                color: white;
+            }
         }
         
-        if (active-page == 1): CreateChannelView {
+        if (active-page == 1): Rectangle {
+            Text {
+                text: "Create Channel View";
+                color: white;
+            }
         }
         
         if (active-page == 2): PreimageView {

@@ -6,7 +6,8 @@ mod node;
 use anyhow::Result;
 use slint::SharedString;
 use std::sync::{Arc, Mutex};
-use tokio::sync::oneshot;
+use tokio::sync::mpsc;
+use tokio::time::{interval, Duration};
 
 use types::AppState;
 use utils::generate_preimage;
@@ -16,56 +17,38 @@ slint::include_modules!();
 
 #[tokio::main]
 async fn main() -> Result<()> {
-    // Spawn node status check in separate thread
-    let (tx, rx) = oneshot::channel();
+    // Create channel for node status updates
+    let (tx, mut rx) = mpsc::channel(10);
+    
+    // Spawn task to check node status in intervals
     tokio::spawn(async move {
-        let info = node_status();
-        let _ = tx.send(info); // Ignore error if receiver dropped
+        let mut interval = interval(Duration::from_secs(10));
+        
+        loop {
+            interval.tick().await;
+            let info = node_status();
+            if let Err(_) = tx.send(info).await {
+                break; // Exit if receiver dropped
+            }
+        }
     });
+    
+    // Initial node status check
+    let initial_node_info = node_status();
 
     let window = MainWindow::new()?;
     let window_weak = Arc::new(window.as_weak());
 
-    // Get node status from background thread
-    let node_info = match rx.await {
-        Ok(info) => info,
-        Err(_) => {
-            println!("Failed to get node status from background thread");
-            // Default values if channel fails
-            NodeInfo {
-                running: false,
-                version: "unknown".to_string(),
-                synced: false,
-                block_height: 0,
-                network: "testnet".to_string(),
-            }
+    // Set up UI with initial node info
+    update_ui_with_node_info(&window_weak, &initial_node_info);
+    
+    // Set up task to update UI when new status arrives
+    let window_weak_for_updates = window_weak.clone();
+    tokio::spawn(async move {
+        while let Some(info) = rx.recv().await {
+            update_ui_with_node_info(&window_weak_for_updates, &info);
         }
-    };
-
-    // Set up UI with node info
-    if let Some(window) = window_weak.upgrade() {
-        window.set_node_is_running(node_info.running);
-        
-        let sync_status = if node_info.synced {
-            format!("Synced: {} (h: {})", node_info.network, node_info.block_height)
-        } else {
-            format!("Syncing: {} (h: {})", node_info.network, node_info.block_height)
-        };
-        
-        window.set_node_sync_status(SharedString::from(sync_status));
-        window.set_wallet_needs_unlock(false);
-        window.set_litd_started_by_app(false);
-        
-        if node_info.running {
-            window.set_status_message(SharedString::from(
-                format!("Connected to LND v{}", node_info.version),
-            ));
-        } else {
-            window.set_status_message(SharedString::from(
-                "UI Demo Mode - API connectivity disabled",
-            ));
-        }
-    }
+    });
 
     // Set up callbacks for UI navigation - don't try to set active-page directly
     window.on_manage_channels(move || {
@@ -136,4 +119,39 @@ async fn main() -> Result<()> {
 
     window.run()?;
     Ok(())
+}
+
+// Helper function to update UI with node info
+fn update_ui_with_node_info(window_weak: &Arc<slint::Weak<MainWindow>>, node_info: &NodeInfo) {
+    if let Some(window) = window_weak.upgrade() {
+        window.set_node_is_running(node_info.running);
+        
+        let sync_status = if node_info.synced {
+            format!("Synced: {} \n(h: {})", node_info.network, node_info.block_height)
+        } else {
+            format!("Syncing: {} \n(h: {})", node_info.network, node_info.block_height)
+        };
+        
+        window.set_node_sync_status(SharedString::from(sync_status));
+        window.set_status_checking(true); // Trigger animation
+        
+        // Reset animation after a short delay
+        let window_weak_clone = window_weak.clone();
+        tokio::spawn(async move {
+            tokio::time::sleep(Duration::from_secs(1)).await;
+            if let Some(window) = window_weak_clone.upgrade() {
+                window.set_status_checking(false);
+            }
+        });
+        
+        if node_info.running {
+            window.set_status_message(SharedString::from(
+                format!("Connected to LND v{}", node_info.version),
+            ));
+        } else {
+            window.set_status_message(SharedString::from(
+                "UI Demo Mode - API connectivity disabled",
+            ));
+        }
+    }
 }

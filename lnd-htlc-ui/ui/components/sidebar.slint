@@ -6,6 +6,7 @@ export component Sidebar inherits Rectangle {
     in property <string> node-sync-status;
     in property <bool> wallet-needs-unlock;
     in property <bool> litd-started-by-app;
+    in property <bool> status-checking: false;
     
     // Callbacks to parent - UI navigation only
     callback manage-channels();
@@ -58,10 +59,23 @@ export component Sidebar inherits Rectangle {
                     }
                 }
                 
-                Text {
-                    text: "Sync: " + root.node-sync-status;
-                    color: #bbbbbb;
-                    font-size: 13px;
+                HorizontalLayout {
+                    spacing: 8px;
+                    
+                    // Status checking indicator
+                    Rectangle {
+                        width: 8px;
+                        height: 8px;
+                        border-radius: 4px;
+                        background: root.status-checking ? #3498db : transparent;
+                        visible: root.status-checking;
+                    }
+                    
+                    Text {
+                        text: "Sync: " + root.node-sync-status;
+                        color: #bbbbbb;
+                        font-size: 13px;
+                    }
                 }
             }
         }

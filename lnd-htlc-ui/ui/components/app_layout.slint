@@ -9,6 +9,7 @@ export component AppLayout inherits Rectangle {
     in property <string> status-message;
     in property <bool> has-error;
     in property <bool> litd-started-by-app;
+    in property <bool> status-checking;
     in-out property <int> active-page;
     
     // UI navigation callbacks only
@@ -36,6 +37,7 @@ export component AppLayout inherits Rectangle {
                 node-sync-status: root.node-sync-status;
                 wallet-needs-unlock: root.wallet-needs-unlock;
                 litd-started-by-app: root.litd-started-by-app;
+                status-checking: root.status-checking;
                 
                 manage-channels => { root.manage-channels(); }
                 create-channel => { root.create-channel(); }
