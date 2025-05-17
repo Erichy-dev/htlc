@@ -113,32 +113,90 @@ async fn main() -> Result<()> {
         });
     });
 
-    let window_weak_clone = window_weak.clone();
-    window.on_create_channel(move || {
-        println!("Create Channel View clicked");
-        let window_weak_for_channel = window_weak_clone.clone();
-        tokio::spawn(async move {
-            if let Some(window) = window_weak_for_channel.upgrade() {
-                window.set_status_message(SharedString::from(
-                    "Automatically opening channel with a peer..."
-                ));
-            }
-            match channels::auto_open_channel(20000) {
-                Ok(result) => {
-                    if let Some(window) = window_weak_for_channel.upgrade() {
-                        window.set_status_message(SharedString::from(
-                            "Channel opened successfully!"
-                        ));
+    let open_channel_weak_ref = window_weak.clone(); // Clone Arc<Weak> for the callback
+    window.on_open_lightning_channel(move || { // This callback runs on the Slint thread
+        println!("Auto Open Channel button clicked");
+        
+        // We don't upgrade `ui` here to pass into tokio::spawn.
+        // Instead, clone the weak reference again for the tokio task.
+        let task_weak_ref = open_channel_weak_ref.clone(); 
+        
+        tokio::spawn(async move { // task_weak_ref (Arc<Weak<MainWindow>>) is moved here. This is Send + Sync.
+            const DEFAULT_CHANNEL_AMOUNT: u32 = 20000;
+            
+            // --- Stage 1: List Peers (Async/Blocking work) ---
+            let list_peers_result = channels::list_peers();
+            
+            match list_peers_result {
+                Ok(peers) => {
+                    if let Some(first_peer_pubkey_str) = peers.first().map(|s| s.to_string()) { // Own the string
+                        
+                        // --- Stage 2: Update UI - Found Peer (on Slint thread) ---
+                        let status_msg_found_peer = format!("Found peer: {}. Attempting to open channel for {} sats...", first_peer_pubkey_str, DEFAULT_CHANNEL_AMOUNT);
+                        let weak_for_status_update = task_weak_ref.clone();
+                        slint::invoke_from_event_loop(move || {
+                            if let Some(ui) = weak_for_status_update.upgrade() {
+                                ui.set_create_channel_status_message(status_msg_found_peer.into());
+                            }
+                        }).ok(); // .ok() to ignore error if UI is already closed
+
+                        // --- Stage 3: Open Channel (Async/Blocking work) ---
+                        let open_channel_result = channels::open_channel(&first_peer_pubkey_str, DEFAULT_CHANNEL_AMOUNT);
+                        let weak_for_final_update = task_weak_ref.clone(); // Clone weak ref for the final update closure
+
+                        match open_channel_result {
+                            Ok(result) => {
+                                let funding_txid = utils::extract_funding_txid_from_string(&result).unwrap_or_else(|| "N/A".to_string());
+                                let success_message = format!(
+                                    "Channel open success! Funding TXID: {}. You can now visit 'Manage Channels'.",
+                                    funding_txid
+                                );
+                                // --- Stage 4a: Update UI - Success (on Slint thread) ---
+                                slint::invoke_from_event_loop(move || {
+                                    if let Some(ui) = weak_for_final_update.upgrade() {
+                                        ui.set_create_channel_funding_txid(funding_txid.into());
+                                        ui.set_create_channel_status_message(success_message.into());
+                                        ui.set_create_channel_in_progress(false);
+                                    }
+                                }).ok();
+                            }
+                            Err(e) => {
+                                let error_message = format!("Failed to open channel with {}: {}", first_peer_pubkey_str, e);
+                                println!("{}", error_message);
+                                // --- Stage 4b: Update UI - Error Open Channel (on Slint thread) ---
+                                slint::invoke_from_event_loop(move || {
+                                     if let Some(ui) = weak_for_final_update.upgrade() {
+                                        ui.set_create_channel_status_message(error_message.into());
+                                        ui.set_create_channel_funding_txid("".into());
+                                        ui.set_create_channel_in_progress(false);
+                                    }
+                                }).ok();
+                            }
+                        }
+                    } else { // No peers found
+                        let msg = "No peers found to auto-open a channel with.".to_string();
+                        println!("{}", msg);
+                        let weak_for_no_peers_update = task_weak_ref.clone();
+                        // --- Update UI - No Peers (on Slint thread) ---
+                        slint::invoke_from_event_loop(move || {
+                            if let Some(ui) = weak_for_no_peers_update.upgrade() {
+                                ui.set_create_channel_status_message(msg.into());
+                                ui.set_create_channel_in_progress(false);
+                            }
+                        }).ok();
                     }
-                    println!("Auto channel result: {}", result);
-                },
-                Err(e) => {
-                    if let Some(window) = window_weak_for_channel.upgrade() {
-                        window.set_status_message(SharedString::from(
-                            format!("Failed to open channel: {}", e)
-                        ));
-                    }
-                    println!("Auto channel error: {}", e);
+                }
+                Err(e) => { // Failed to list peers
+                    let error_message = format!("Failed to list peers: {}", e);
+                    println!("{}", error_message);
+                    let weak_for_list_error_update = task_weak_ref.clone();
+                    // --- Update UI - List Peers Error (on Slint thread) ---
+                    slint::invoke_from_event_loop(move || {
+                        if let Some(ui) = weak_for_list_error_update.upgrade() {
+                            ui.set_create_channel_status_message(error_message.into());
+                            ui.set_create_channel_in_progress(false);
+                        }
+                    }).ok();
                 }
             }
         });

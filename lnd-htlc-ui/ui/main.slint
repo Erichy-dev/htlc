@@ -7,6 +7,7 @@ import { ChannelsView, Channel, PendingChannel } from "views/channels_view.slint
 import { PreimageView } from "views/preimage_view.slint";
 import { CreateCustomInvoiceView, PayInvoiceView, ClaimInvoiceView, CreateStandardInvoiceView } from "views/invoice_views.slint";
 import { WelcomeView } from "views/welcome_view.slint";
+import { CreateChannelView } from "views/create_channel_view.slint";
 import { Sidebar } from "components/sidebar.slint";
 
 export enum ActivePage {
@@ -35,13 +36,13 @@ export component MainWindow inherits Window {
     
     // Callbacks
     callback manage-channels();
-    callback create-channel();
     callback generate-xh();
     callback connect-peer(string, string, string); // pubkey, host, port
     callback create-custom-invoice(string, string, string); // preimage, amount, memo
     callback pay-custom-invoice(string); // bolt11
     callback claim-custom-invoice(string, string); // hash, preimage
     callback create-standard-invoice(string, int); // memo, amount
+    callback open-lightning-channel(); // pubkey, amount (New callback for opening channel)
     
     // Special callback for updating preimage/hash display
     callback update-preimage-hash(string, string); // preimage, hash
@@ -54,6 +55,11 @@ export component MainWindow inherits Window {
     // Local storage for preimage and hash
     property <string> current-preimage;
     property <string> current-hash;
+    
+    // Properties for CreateChannelView
+    in-out property <string> create-channel-status-message: "";
+    in-out property <string> create-channel-funding-txid: "";
+    in-out property <bool> create-channel-in-progress: false;
     
     // Main app layout with sidebar and status bar
     AppLayout {
@@ -69,7 +75,12 @@ export component MainWindow inherits Window {
         active-page <=> root.active-page;
         
         manage-channels => { root.manage-channels(); }
-        create-channel => { root.create-channel(); }
+        create-channel => { 
+            root.active-page = 1; 
+            root.create-channel-status-message = ""; // Reset status when navigating to page
+            root.create-channel-funding-txid = "";
+            root.create-channel-in-progress = false;
+        }
         generate-xh => { root.generate-xh(); }
         create-custom-invoice => { root.active-page = 3; }
         pay-invoice => { root.active-page = 4; }
@@ -85,6 +96,16 @@ export component MainWindow inherits Window {
         if (active-page == 0): ChannelsView {
             channels: root.channels;
             pending_channels: root.pending_channels;
+        }
+        
+        if (active-page == 1): CreateChannelView {
+            status-message <=> root.create-channel-status-message;
+            funding-txid <=> root.create-channel-funding-txid;
+            operation-in-progress <=> root.create-channel-in-progress;
+            open-channel-requested() => {
+                root.create-channel-in-progress = true;
+                root.open-lightning-channel();
+            }
         }
         
         if (active-page == 2): PreimageView {

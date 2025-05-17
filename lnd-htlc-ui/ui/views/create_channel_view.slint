@@ -1,0 +1,76 @@
+import { Button, VerticalBox, TextEdit } from "std-widgets.slint";
+
+export component CreateChannelView inherits Rectangle {
+    background: transparent;
+    vertical-stretch: 1;
+    horizontal-stretch: 1;
+
+    callback open-channel-requested();
+
+    in-out property <string> status-message: "";
+    in-out property <bool> operation-in-progress: false;
+    in-out property <string> funding-txid: "";
+
+
+    VerticalLayout {
+        padding: 20px;
+        spacing: 16px;
+        alignment: center;
+
+        Text {
+            text: "Auto Create Channel";
+            font-size: 24px;
+            font-weight: 600;
+            color: #e0e0e0;
+            horizontal-alignment: center;
+        }
+
+        Text {
+            text: "Click the button below to automatically list peers, select one, and attempt to open a 20,000 sat channel.";
+            font-size: 16px;
+            color: #c0c0c0;
+            horizontal-alignment: center;
+            wrap: word-wrap;
+            max-width: 400px;
+        }
+        
+        Rectangle { height: 20px; } // Spacer
+
+        HorizontalLayout {
+            alignment: center;
+            
+            Rectangle {
+                width: 300px;
+                height: 40px;
+                background: root.operation-in-progress ? #404040 : #2962ff;
+                border-radius: 4px;
+                
+                TouchArea {
+                    enabled: !root.operation-in-progress;
+                    clicked => {
+                        root.status-message = "Attempting to auto-open channel...";
+                        root.funding-txid = "";
+                        root.open-channel-requested();
+                    }
+                }
+
+                Text {
+                    text: "Auto Open Channel (20,000 sats)";
+                    color: white;
+                    font-size: 14px;
+                    horizontal-alignment: center;
+                    vertical-alignment: center;
+                }
+            }
+        }
+        
+        Rectangle { height: 15px; } // Spacer
+
+        if root.status-message != "": Text {
+            text: root.status-message;
+            color: root.funding-txid != "" ? #a3ffb0 : #f0ad4e;
+            wrap: word-wrap;
+            horizontal-alignment: center;
+        }
+    }
+} 
