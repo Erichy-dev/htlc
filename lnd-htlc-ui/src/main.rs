@@ -287,7 +287,6 @@ async fn main() -> Result<()> {
         tokio::spawn(async move {
             match invoice::list_invoices() {
                 Ok(invoices_json_str) => {
-                    // Attempt to parse the JSON
                     match serde_json::from_str::<ListInvoicesResponse>(&invoices_json_str) {
                         Ok(parsed_response) => {
                             let slint_invoices_vec: Vec<InvoiceDetails> = parsed_response.invoices.into_iter().map(|i| {

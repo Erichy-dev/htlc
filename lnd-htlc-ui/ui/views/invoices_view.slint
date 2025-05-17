@@ -15,7 +15,7 @@ export component InvoicesView inherits VerticalBox {
     in-out property <[InvoiceDetails]> invoices: [];
 
     Text {
-        text: "Invoices";
+        text: invoices.length + " invoices";
         font-size: 24px;
         font-weight: 700;
         horizontal-alignment: center;
@@ -33,88 +33,77 @@ export component InvoicesView inherits VerticalBox {
                 font-size: 16px;
             }
         }
-        if invoices.length > 0 : StandardListView {
-            for invoice_item in invoices: VerticalBox {
-                spacing: 5px;
+        if invoices.length > 0 : VerticalLayout {
+            
+            for invoice_item in invoices: Rectangle {
                 padding: 10px;
+                height: 60px;
+                background: #2a2a2a;
+                border-radius: 8px;
 
-                Rectangle {
-                    background: #2a2a2a;
-                    border-radius: 8px;
-                    drop-shadow-color: #00000080;
-                    drop-shadow-offset-x: 0px;
-                    drop-shadow-offset-y: 2px;
-                    drop-shadow-blur: 4px;
+                VerticalLayout {
+                    spacing: 12px;
                     padding: 16px;
 
-                    VerticalLayout {
-                        spacing: 12px;
+                    HorizontalLayout {
+                        spacing: 16px;
 
-                        HorizontalLayout {
-                            spacing: 16px;
-
-                            VerticalLayout {
-                                Text { 
-                                    text: invoice_item.memo;
-                                    font-size: 18px;
-                                    font-weight: 600;
-                                    color: #ffffff;
-                                }
-
-                                HorizontalLayout {
-                                    spacing: 8px;
-                                    alignment: start;
-
-                                    Rectangle {
-                                        width: 12px;
-                                        padding: 4px;
-                                        height: 12px;
-                                        border-radius: 6px;
-                                        background: invoice_item.state == "SETTLED" ? #4caf50 : #ffc107;
-                                    }
-
-                                    Text {
-                                        text: invoice_item.state;
-                                        font-size: 14px;
-                                        color: invoice_item.state == "SETTLED" ? #4caf50 : #ffc107;
-                                    }
-                                }
+                        VerticalLayout {
+                            Text { 
+                                text: invoice_item.memo;
+                                font-size: 18px;
+                                font-weight: 600;
+                                color: #ffffff;
                             }
 
-                            Rectangle {
-                                width: 1px;
-                                background: #404040;
-                            }
+                            HorizontalLayout {
+                                spacing: 8px;
+                                alignment: start;
 
-                            VerticalLayout {
-                                alignment: center;
-                                Text {
-                                    text: invoice_item.value + " sats";
-                                    font-size: 20px;
-                                    font-weight: 700;
-                                    color: #5294e2;
+                                Rectangle {
+                                    width: 12px;
+                                    padding: 4px;
+                                    height: 12px;
+                                    border-radius: 6px;
+                                    background: invoice_item.state == "SETTLED" ? #4caf50 : #ffc107;
                                 }
+
                                 Text {
-                                    text: invoice_item.creation_date;
-                                    font-size: 12px;
-                                    color: #808080;
+                                    text: invoice_item.state;
+                                    font-size: 14px;
+                                    color: invoice_item.state == "SETTLED" ? #4caf50 : #ffc107;
                                 }
                             }
                         }
 
                         Rectangle {
-                            height: 1px;
-                            background: #e4e0e0;
+                            width: 1px;
+                            background: #404040;
                         }
 
-                        Text {
-                            text: "Hash: " + invoice_item.r_hash;
-                            font-size: 12px;
-                            color: #e4e0e0;
-                            opacity: 0.7;
+                        VerticalLayout {
+                            alignment: center;
+                            Text {
+                                text: invoice_item.value + " sats";
+                                font-size: 20px;
+                                font-weight: 700;
+                                color: #5294e2;
+                            }
+                            Text {
+                                text: invoice_item.creation_date;
+                                font-size: 12px;
+                                color: #808080;
+                            }
                         }
                     }
-                }
+
+                    Text {
+                        text: "Hash: " + invoice_item.r_hash;
+                        font-size: 12px;
+                        color: #e4e0e0;
+                        opacity: 0.7;
+                    }
+                }   
 
                 Rectangle {
                     height: 8px;

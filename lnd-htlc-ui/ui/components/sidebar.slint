@@ -174,40 +174,6 @@ export component Sidebar inherits Rectangle {
                 }
                 clicked => { root.create-custom-invoice(); }
             }
-            
-            TouchArea {
-                Rectangle {
-                    height: 34px;
-                    width: 100%;
-                    background: #333333;
-                    border-radius: 4px;
-                    
-                    Text {
-                        text: "Pay Invoice";
-                        color: white;
-                        horizontal-alignment: center;
-                        vertical-alignment: center;
-                    }
-                }
-                clicked => { root.pay-invoice(); }
-            }
-            
-            TouchArea {
-                Rectangle {
-                    height: 34px;
-                    width: 100%;
-                    background: #333333;
-                    border-radius: 4px;
-                    
-                    Text {
-                        text: "Settle With Preimage";
-                        color: white;
-                        horizontal-alignment: center;
-                        vertical-alignment: center;
-                    }
-                }
-                clicked => { root.claim-invoice(); }
-            }
         }
     }
 } 
