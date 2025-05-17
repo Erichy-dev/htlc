@@ -36,7 +36,7 @@ export component MainWindow inherits Window {
     
     // Callbacks
     callback manage-channels();
-    callback generate-xh();
+    callback request-preimage-generation();
     callback connect-peer(string, string, string); // pubkey, host, port
     callback create-custom-invoice(string, string, string); // preimage, amount, memo
     callback pay-custom-invoice(string); // bolt11
@@ -44,9 +44,6 @@ export component MainWindow inherits Window {
     callback create-standard-invoice(string, int); // memo, amount
     callback open-lightning-channel(); // pubkey, amount (New callback for opening channel)
     callback manage-invoices(); // New callback for listing invoices
-    
-    // Special callback for updating preimage/hash display
-    callback update-preimage-hash(string, string); // preimage, hash
     
     // Action page tracking
     in-out property <int> active-page: -1; // 0 = manage channels, 1 = create channel, 2 = generate x/h, 3 = custom invoice, 4 = pay invoice, 5 = claim invoice, 6 = standard invoice
@@ -64,6 +61,11 @@ export component MainWindow inherits Window {
     
     // Property to hold all invoices
     in-out property <[InvoiceDetails]> all_invoices: [];
+
+    // Properties to hold generated preimage and hash
+    in-out property <string> generated_preimage_x: "";
+    in-out property <string> generated_preimage_h: "";
+    in-out property <string> payment_address: "";
     
     // Main app layout with sidebar and status bar
     AppLayout {
@@ -85,7 +87,7 @@ export component MainWindow inherits Window {
             root.create-channel-funding-txid = "";
             root.create-channel-in-progress = false;
         }
-        generate-xh => { root.generate-xh(); }
+        request-preimage-generation => { root.request-preimage-generation(); }
         manage-invoices => { root.manage-invoices(); }
         create-custom-invoice => { root.active-page = 3; }
         pay-invoice => { root.active-page = 4; }
@@ -121,6 +123,12 @@ export component MainWindow inherits Window {
             create-clicked(preimage, amount, memo) => {
                 root.create-custom-invoice(preimage, amount, memo);
             }
+            request-preimage-generation => {
+                root.request-preimage-generation();
+            }
+            generated-preimage-x <=> root.generated_preimage_x;
+            generated-preimage-h <=> root.generated_preimage_h;
+            payment-address <=> root.payment_address;
         }
         
         if (active-page == 4): PayInvoiceView {

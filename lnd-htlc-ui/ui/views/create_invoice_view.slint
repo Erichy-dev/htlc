@@ -3,6 +3,10 @@ import { LineEdit } from "std-widgets.slint";
 // 1. Create Custom Invoice View
 export component CreateCustomInvoiceView {
     callback create-clicked(string, string, string); // preimage, amount, memo
+    callback request-preimage-generation();
+    in-out property <string> generated-preimage-x: "";
+    in-out property <string> generated-preimage-h: "";
+    in-out property <string> payment-address: "";
     
     VerticalLayout {
         spacing: 16px;
@@ -29,18 +33,50 @@ export component CreateCustomInvoiceView {
                     color: #e0e0e0;
                     font-weight: 500;
                 }
+
+                Rectangle {
+                    height: 8px;
+                }
                 
+                HorizontalLayout {
+                    alignment: center;
+                    
+                    TouchArea {
+                        Rectangle {
+                            width: 160px;
+                            height: 42px;
+                            border-radius: 4px;
+                            background: #5294e2;
+                            
+                            Text {
+                                text: "Generate H/X";
+                                color: white;
+                                font-weight: 600;
+                                horizontal-alignment: center;
+                                vertical-alignment: center;
+                            }
+                        }
+                        clicked => {
+                            root.request-preimage-generation();
+                        }
+                    }
+                }
+
+                Rectangle {
+                    height: 8px;
+                }
+
                 VerticalLayout {
                     spacing: 8px;
-                    
+
                     Text {
-                        text: "Preimage:";
-                        color: #e0e0e0;
+                        text: "Preimage (X): \{root.generated_preimage_x}";
+                        color: #c0c0c0; // Lighter color for generated output
                     }
-                    
-                    preimage := LineEdit {
-                        placeholder-text: "Enter a 32-byte hex preimage";
-                        height: 36px;
+
+                    Text {
+                        text: "Payment Hash (H): \{root.generated_preimage_h}";
+                        color: #c0c0c0; // Lighter color for generated output
                     }
                 }
                 
@@ -77,11 +113,12 @@ export component CreateCustomInvoiceView {
                 }
                 
                 TouchArea {
+                    enabled: root.generated_preimage_x != "" && root.generated_preimage_h != "" && amount.text != "";
                     Rectangle {
                         width: 160px;
                         height: 42px;
                         border-radius: 4px;
-                        background: #5294e2;
+                        background: root.generated_preimage_x != "" && root.generated_preimage_h != "" && amount.text != "" ? #5294e2 : #808080;
                         
                         Text {
                             text: "Create Invoice";
@@ -92,8 +129,22 @@ export component CreateCustomInvoiceView {
                         }
                     }
                     clicked => {
-                        root.create-clicked(preimage.text, amount.text, memo.text);
+                        root.create-clicked(root.generated_preimage_x, amount.text, memo.text);
                     }
+                }
+
+                Rectangle {
+                    height: 8px;
+                }
+
+                if root.payment_address != "": Text {
+                    text: "Payment Address: \{root.payment_address}";
+                    color: #5294e2;
+                    font-weight: 500;
+                    font-size: 14px;
+                    horizontal-alignment: left;
+                    vertical-alignment: center;
+                    padding: 8px;
                 }
             }
         }

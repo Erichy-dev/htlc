@@ -313,27 +313,44 @@ async fn main() -> Result<()> {
     });
 
     let window_weak_clone = window_weak.clone();
-    window.on_generate_xh(move || {
+    window.on_request_preimage_generation(move || {
         let (preimage, hash) = generate_preimage();
         if let Some(window) = window_weak_clone.upgrade() {
-            window.invoke_update_preimage_hash(
-                SharedString::from(preimage.clone()),
-                SharedString::from(hash.clone()),
-            );
             window.set_status_message(SharedString::from(format!(
-                "Demo: Generated preimage: {}, hash: {}",
+                "Generated preimage: {}, hash: {}",
                 preimage, hash
             )));
+            window.set_generated_preimage_x(SharedString::from(preimage.clone()));
+            window.set_generated_preimage_h(SharedString::from(hash.clone()));
         }
     });
 
     let window_weak_clone = window_weak.clone();
     window.on_create_custom_invoice(move |preimage, amount, memo| {
         if let Some(window) = window_weak_clone.upgrade() {
-            window.set_status_message(SharedString::from(format!(
-                "Demo: Created invoice with preimage: {}, amount: {}, memo: {}",
-                preimage, amount, memo
-            )));
+            println!("Creating custom invoice with preimage: {}, amount: {}, memo: {}", preimage, amount, memo);
+            match invoice::create_invoice(preimage.to_string(), amount.to_string(), memo.to_string()) {
+                Ok(output) => {
+                    window.set_status_message(SharedString::from(format!(
+                        "Created invoice with preimage: {}, amount: {}, memo: {}",
+                        preimage, amount, memo
+                    )));
+                    // Parse JSON output to get payment_addr
+                    if let Ok(json) = serde_json::from_str::<serde_json::Value>(&output) {
+                        if let Some(payment_addr) = json.get("payment_addr").and_then(|v| v.as_str()) {
+                            window.set_payment_address(SharedString::from(payment_addr));
+                        }
+                    }
+                    window.set_generated_preimage_h(SharedString::from(""));
+                    window.set_generated_preimage_x(SharedString::from(""));
+                }
+                Err(e) => {
+                    window.set_status_message(SharedString::from(format!(
+                        "Error creating invoice: {}",
+                        e
+                    )));
+                }
+            }
         }
     });
 

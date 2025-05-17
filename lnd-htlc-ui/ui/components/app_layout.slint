@@ -18,8 +18,8 @@ export component AppLayout inherits Rectangle {
     // UI navigation callbacks only
     callback manage-channels();
     callback create-channel();
-    callback generate-xh();
     callback manage-invoices();
+    callback request-preimage-generation();
     callback create-custom-invoice();
     callback pay-invoice();
     callback claim-invoice();
@@ -45,7 +45,6 @@ export component AppLayout inherits Rectangle {
                 
                 manage-channels => { root.manage-channels(); }
                 create-channel => { root.create-channel(); }
-                generate-xh => { root.generate-xh(); }
                 manage-invoices => { root.manage-invoices(); }
                 create-custom-invoice => { root.create-custom-invoice(); }
                 pay-invoice => { root.pay-invoice(); }
