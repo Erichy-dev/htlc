@@ -374,9 +374,39 @@ async fn main() -> Result<()> {
                 "Settling invoice with preimage hash: {}",
                 preimage_h
             )));
+
+            let refresh_ui_handle_weak = settle_window_weak_clone.clone();
+            let refresh_db_clone = db_clone_for_settle.clone();
+
             match invoice::settle_invoice(preimage_h.to_string(), &db_clone_for_settle) {
                 Ok(_) => {
-                    window.set_status_message(SharedString::from("Invoice settled successfully."));
+                    window.set_status_message(SharedString::from("Invoice settled successfully. Refreshing list..."));
+
+                    // Spawn a task to refresh the invoices list
+                    tokio::spawn(async move {
+                        match invoice::list_invoices(&refresh_db_clone) {
+                            Ok(slint_invoices_vec) => {
+                                let _ = slint::invoke_from_event_loop(move || {
+                                    if let Some(window_for_refresh) = refresh_ui_handle_weak.upgrade() {
+                                        window_for_refresh.set_all_invoices(ModelRc::new(VecModel::from(slint_invoices_vec)));
+                                        let current_status = window_for_refresh.get_status_message();
+                                        window_for_refresh.set_status_message(format!("{} Invoices refreshed.", current_status).into());
+                                        println!("Invoices successfully refreshed and UI updated after settlement.");
+                                    }
+                                });
+                            }
+                            Err(e) => {
+                                let error_msg = format!("Error refreshing invoices after settlement: {}", e);
+                                println!("{}", error_msg);
+                                let _ = slint::invoke_from_event_loop(move || {
+                                    if let Some(window_for_refresh_err) = refresh_ui_handle_weak.upgrade() {
+                                        let current_status = window_for_refresh_err.get_status_message();
+                                        window_for_refresh_err.set_status_message(format!("{} Failed to refresh invoices: {}", current_status, e).into());
+                                    }
+                                });
+                            }
+                        }
+                    });
                 }
                 Err(e) => {
                     window.set_status_message(SharedString::from(format!(
