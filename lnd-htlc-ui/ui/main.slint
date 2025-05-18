@@ -44,7 +44,8 @@ export component MainWindow inherits Window {
     callback create-standard-invoice(string, int); // memo, amount
     callback open-lightning-channel(); // pubkey, amount (New callback for opening channel)
     callback manage-invoices(); // New callback for listing invoices
-    
+    callback settle-custom-invoice(string); // preimage_x
+
     // Action page tracking
     in-out property <int> active-page: -1; // 0 = manage channels, 1 = create channel, 2 = generate x/h, 3 = custom invoice, 4 = pay invoice, 5 = claim invoice, 6 = standard invoice
     
@@ -94,7 +95,7 @@ export component MainWindow inherits Window {
         pay-invoice => { root.active-page = 4; }
         claim-invoice => { root.active-page = 5; }
         create-standard-invoice => { root.active-page = 6; }
-        
+
         // Main content area based on active page
         if (active-page == -1): WelcomeView {
             node-is-running: root.node-is-running;
@@ -118,6 +119,7 @@ export component MainWindow inherits Window {
 
         if (active-page == 2): InvoicesView {
             invoices <=> root.all_invoices;
+            settle-custom-invoice(r_hash) => { root.settle-custom-invoice(r_hash); }
         }
         
         if (active-page == 3): CreateCustomInvoiceView {
@@ -148,19 +150,6 @@ export component MainWindow inherits Window {
             create-clicked(memo, amount) => {
                 root.create-standard-invoice(memo, amount);
             }
-        }
-    }
-    
-    // Add the wallet unlock dialog - will be inactive in demo mode
-    wallet-dialog := WalletUnlockDialog {
-        show: root.wallet-needs-unlock;
-        
-        unlock-wallet(password) => {
-            // No-op in demo mode
-        }
-        
-        close => {
-            // No-op in demo mode
         }
     }
 } 

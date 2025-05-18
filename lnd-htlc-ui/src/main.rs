@@ -75,7 +75,7 @@ async fn main() -> Result<()> {
     });
     
     let initial_node_info = node_status();
-    let window = MainWindow::new()?;
+    let window = MainWindow::new().map_err(|e| anyhow::anyhow!("Failed to create main window: {}", e))?;
     let window_weak = Arc::new(window.as_weak());
 
     let node_db_clone = db.clone();
@@ -357,32 +357,34 @@ async fn main() -> Result<()> {
     });
 
     let window_weak_clone = window_weak.clone();
-    window.on_pay_custom_invoice(move |bolt11| {
-        if let Some(window) = window_weak_clone.upgrade() {
-            window.set_status_message(SharedString::from(format!(
-                "Demo: Paid invoice: {}",
-                bolt11
-            )));
-        }
-    });
-
-    let window_weak_clone = window_weak.clone();
-    window.on_claim_custom_invoice(move |hash, preimage| {
-        if let Some(window) = window_weak_clone.upgrade() {
-            window.set_status_message(SharedString::from(format!(
-                "Demo: Claimed invoice with hash: {}, preimage: {}",
-                hash, preimage
-            )));
-        }
-    });
-
-    let window_weak_clone = window_weak.clone();
     window.on_create_standard_invoice(move |memo, amount| {
         if let Some(window) = window_weak_clone.upgrade() {
             window.set_status_message(SharedString::from(format!(
                 "Demo: Created standard invoice with memo: {}, amount: {}",
                 memo, amount
             )));
+        }
+    });
+
+    let settle_window_weak_clone = window_weak.clone();
+    let db_clone_for_settle = db.clone();
+    window.on_settle_custom_invoice(move |preimage_h| {
+        if let Some(window) = settle_window_weak_clone.upgrade() {
+            window.set_status_message(SharedString::from(format!(
+                "Settling invoice with preimage hash: {}",
+                preimage_h
+            )));
+            match invoice::settle_invoice(preimage_h.to_string(), &db_clone_for_settle) {
+                Ok(_) => {
+                    window.set_status_message(SharedString::from("Invoice settled successfully."));
+                }
+                Err(e) => {
+                    window.set_status_message(SharedString::from(format!(
+                        "Error settling invoice: {}",
+                        e
+                    )));
+                }
+            }
         }
     });
 

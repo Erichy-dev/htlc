@@ -12,6 +12,8 @@ export struct InvoiceDetails {
 export component InvoicesView inherits VerticalBox {
     // Callback to signal that invoices should be fetched or refreshed
     callback list-invoices-requested();
+    // Callback to settle an invoice
+    callback settle-custom-invoice(string);
     // Property to hold the list of invoices
     in-out property <[InvoiceDetails]> invoices: [];
 
@@ -123,48 +125,51 @@ export component InvoicesView inherits VerticalBox {
                                 }
                             
                                 if invoice_item.is_own_invoice && invoice_item.state == "ACCEPTED":
+                                    TouchArea {
+                                        Rectangle {
+                                            padding: 12px;
+                                            background: #0cef54;
+                                            border-radius: 8px;
+                                            width: 65px;
+                                            height: 30px;
+
+                                            Text {
+                                                font-size: 16px;
+                                                
+                                                text: "Settle";
+                                            }
+                                        }
+                                        clicked => { root.settle-custom-invoice(invoice_item.r_hash); }
+                                    }
+                                if invoice_item.state == "SETTLED":
                                     Rectangle {
                                         padding: 12px;
                                         background: #0cef54;
                                         border-radius: 8px;
-                                        width: 65px;
+                                        width: 75px;
+                                        height: 30px;
+                                        
+                                        Text {
+                                            font-size: 16px;
+                                            
+                                            text: "Settled";
+                                        }
+                                    }
+                            
+                                if invoice_item.state == "CANCELED":
+                                    Rectangle {
+                                        padding: 12px;
+                                        background: #ef0c0c;
+                                        border-radius: 8px;
+                                        width: 75px;
                                         height: 30px;
 
                                         Text {
                                             font-size: 16px;
                                             
-                                            text: "Settle";
+                                            text: "Expired";
                                         }
                                     }
-                            if invoice_item.state == "SETTLED":
-                                Rectangle {
-                                    padding: 12px;
-                                    background: #0cef54;
-                                    border-radius: 8px;
-                                    width: 75px;
-                                    height: 30px;
-                                    
-                                    Text {
-                                        font-size: 16px;
-                                        
-                                        text: "Settled";
-                                    }
-                                }
-                            
-                            if invoice_item.state == "CANCELED":
-                                Rectangle {
-                                    padding: 12px;
-                                    background: #ef0c0c;
-                                    border-radius: 8px;
-                                    width: 75px;
-                                    height: 30px;
-
-                                    Text {
-                                        font-size: 16px;
-                                        
-                                        text: "Expired";
-                                    }
-                                }
                         }
                         
                         Text {

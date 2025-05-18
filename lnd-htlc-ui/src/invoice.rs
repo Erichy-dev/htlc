@@ -118,3 +118,51 @@ pub fn create_invoice(preimage_x: String, preimage_h: String, amount: String, me
         Err(e) => Err(anyhow!("Failed to parse JSON response: {}", e))
     }
 }
+
+pub fn settle_invoice(preimage_h: String, db: &sled::Db) -> Result<()> {
+    let preimage_x = match db.get(preimage_h.as_bytes()) {
+        Ok(Some(invoice_data_ivec)) => {
+            match bincode::deserialize::<InvoiceData>(&invoice_data_ivec) {
+                Ok(deserialized_struct) => {
+                    println!("Found invoice data in DB. Preimage X: {}, Preimage H: {}", deserialized_struct.preimage_x, deserialized_struct.preimage_h);
+                    if deserialized_struct.preimage_x.is_empty() {
+                        let err_msg = format!("Preimage X is empty for r_hash {} in DB.", preimage_h);
+                        println!("{}", err_msg);
+                        return Err(anyhow!(err_msg));
+                    }
+                    deserialized_struct.preimage_x
+                }
+                Err(e) => {
+                    let err_msg = format!("Failed to deserialize InvoiceData for r_hash {}: {}. Data (lossy UTF-8): {:?}", preimage_h, e, String::from_utf8_lossy(&invoice_data_ivec));
+                    println!("{}", err_msg);
+                    return Err(anyhow!(err_msg));
+                }
+            }
+        }
+        Ok(None) => {
+            let err_msg = format!("No invoice data found in DB for r_hash: {}", preimage_h);
+            println!("{}", err_msg);
+            return Err(anyhow!(err_msg));
+        }
+        Err(e) => {
+            let err_msg = format!("Failed to get invoice data from DB for r_hash {}: {}", preimage_h, e);
+            println!("{}", err_msg);
+            return Err(anyhow!(err_msg));
+        }
+    };
+
+    println!("Attempting to settle invoice with r_hash: {}, using resolved preimage_x: {}", preimage_h, preimage_x);
+
+    let output = Command::new("lncli")
+        .args(["--network", "testnet", "settleinvoice", &preimage_x])
+        .output()?;
+
+    let stderr = String::from_utf8_lossy(&output.stderr).to_string();
+    println!("{}", stderr);
+
+    if !output.status.success() {
+        return Err(anyhow!("Failed to settle invoice: {}", stderr));
+    }
+
+    Ok(())
+}
