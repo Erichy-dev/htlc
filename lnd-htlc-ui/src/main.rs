@@ -42,6 +42,7 @@ pub struct InvoiceData {
     preimage_x: String,
     preimage_h: String,
     payment_address: String,
+    is_own_invoice: bool,
 }
 
 #[tokio::main]
@@ -75,6 +76,9 @@ async fn main() -> Result<()> {
     let initial_node_info = node_status();
     let window = MainWindow::new()?;
     let window_weak = Arc::new(window.as_weak());
+
+    let node_db_clone = db.clone();
+    node_db_clone.insert(b"identity_pubkey", initial_node_info.identity_pubkey.as_bytes());
 
     update_ui_with_node_info(&window_weak, &initial_node_info);
     

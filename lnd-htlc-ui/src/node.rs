@@ -8,6 +8,7 @@ pub struct NodeInfo {
     pub synced: bool,
     pub block_height: u64,
     pub network: String,
+    pub identity_pubkey: String,
 }
 
 pub fn node_status() -> NodeInfo {
@@ -22,6 +23,7 @@ pub fn node_status() -> NodeInfo {
     let mut is_synced = false;
     let mut block_height = 0;
     let mut network = String::from("testnet");
+    let mut identity_pubkey = String::from("unknown");
 
     match output {
         Ok(output) => {
@@ -50,6 +52,12 @@ pub fn node_status() -> NodeInfo {
                 if let Some(i) = stdout.find("\"synced_to_chain\":") {
                     is_synced = stdout[i + 18..i + 23].contains("true");
                 }
+
+                if let Some(i) = stdout.find("\"identity_pubkey\":") {
+                    if let Some(j) = stdout[i + 18..i + 40].find(",") {
+                        identity_pubkey = (&stdout[i + 18..i + j - 1]).trim_matches('"').to_string();
+                    }
+                }
             } else {
                 let stderr = String::from_utf8_lossy(&output.stderr);
                 println!("lncli command failed: {}", stderr);
@@ -64,5 +72,6 @@ pub fn node_status() -> NodeInfo {
         synced: is_synced,
         block_height,
         network,
+        identity_pubkey,
     }
 }

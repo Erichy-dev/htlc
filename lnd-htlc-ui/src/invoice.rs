@@ -22,14 +22,38 @@ pub fn create_invoice(preimage: String, amount: String, memo: String, db: &sled:
     match serde_json::from_str::<serde_json::Value>(&stdout) {
         Ok(json) => {
             if let Some(payment_addr) = json.get("payment_addr").and_then(|v| v.as_str()) {
-                let invoice_data_to_save = InvoiceData {
-                    preimage_x: preimage.clone(),
-                    preimage_h: preimage.clone(),
-                    payment_address: payment_addr.to_string(),
-                };
-                let serialized_invoice_data = bincode::serialize(&invoice_data_to_save)?;
-                db.insert(preimage.as_bytes(), serialized_invoice_data)?;
-                Ok(payment_addr.to_string())
+                if let Some(payment_request) = json.get("payment_request").and_then(|v| v.as_str()) {
+                    let invoice_output = Command::new("lncli")
+                        .args(["--network", "decodepayreq", payment_request])
+                        .output()?;
+                    let invoice_stdout = String::from_utf8_lossy(&invoice_output.stdout).to_string();
+                    match serde_json::from_str::<serde_json::Value>(&invoice_stdout) {
+                        Ok(json) => {
+                            let destination_pubkey = json.get("destination").and_then(|v| v.as_str()).unwrap_or("");
+                            let identity_pubkey = db.get(b"identity_pubkey")?.unwrap_or(sled::IVec::from(b""));
+                            let identity_pubkey_str = String::from_utf8_lossy(&identity_pubkey).to_string();
+
+                            let is_own_invoice = destination_pubkey == identity_pubkey_str;
+
+                            let invoice_data_to_save = InvoiceData {
+                                preimage_x: preimage.clone(),
+                                preimage_h: preimage.clone(),
+                                payment_address: payment_addr.to_string(),
+                                is_own_invoice,
+                            };
+                            let serialized_invoice_data = bincode::serialize(&invoice_data_to_save)?;
+                            db.insert(preimage.as_bytes(), serialized_invoice_data)?;
+                           
+                            Ok(payment_addr.to_string())
+                        }
+                        Err(e) => {
+                            println!("Failed to parse JSON response: {}", e);
+                            Err(anyhow!("Failed to parse JSON response: {}", e))
+                        }
+                    }
+                } else {
+                    Err(anyhow!("No payment_request found in response"))
+                }
             } else {
                 Err(anyhow!("No payment_addr found in response"))
             }
