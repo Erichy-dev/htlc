@@ -1,7 +1,6 @@
-use std::process::Command;
-use std::path::PathBuf;
-use std::env;
-use anyhow::{Result, Context};
+use std::{env, path::PathBuf, process::Command};
+
+use anyhow::{Context, Result};
 
 fn get_launch_agent_plist_path() -> Result<PathBuf> {
     let home_dir = env::var("HOME").context("Failed to get HOME directory from environment variables")?;
@@ -20,19 +19,7 @@ fn get_launch_agents_dir_path() -> Result<PathBuf> {
     Ok(path)
 }
 
-pub fn start_litd_service() -> Result<()> {
-    // Determine the os type
-    let os_type = Command::new("uname")
-        .arg("-s")
-        .output()
-        .context("Failed to execute uname command")?;
-    let os_type = String::from_utf8_lossy(&os_type.stdout).trim().to_string();
-    println!("OS type: {}", os_type);
-
-    if os_type != "Darwin" {
-        return Err(anyhow::anyhow!("This script is only supported on macOS"));
-    }
-
+pub fn start_mac_service() -> Result<()> {
     // Check if the service is already running
     // Using sh -c to correctly interpret pipes
     let check_output = Command::new("sh")
@@ -108,23 +95,6 @@ pub fn start_litd_service() -> Result<()> {
     println!("{}", String::from_utf8_lossy(&start_output.stderr));
     if !start_output.status.success() {
         println!("Warning: 'launchctl start' exited with non-zero status. Stderr: {}", String::from_utf8_lossy(&start_output.stderr));
-    }
-
-
-    Ok(())
-}
-
-pub fn stop_litd_service() -> Result<()> {
-    let unload_output = Command::new("launchctl")
-        .arg("remove")
-        .arg("com.btc.litd")
-        .output()
-        .context("Failed to remove service with launchctl")?;
-    println!("{}", String::from_utf8_lossy(&unload_output.stdout));
-    println!("{}", String::from_utf8_lossy(&unload_output.stderr));
-    if !unload_output.status.success() {
-        // It's possible it was already unloaded.
-         println!("Warning: 'launchctl unload' exited with non-zero status. Stderr: {}", String::from_utf8_lossy(&unload_output.stderr));
     }
 
     Ok(())

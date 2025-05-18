@@ -3,7 +3,7 @@ use std::env;
 use std::process::Command;
 use std::process::Stdio;
 
-use crate::unlockWallet::unlock_wallet_rpc;
+use crate::unlock_wallet::unlock_wallet_rpc;
 
 #[derive(Clone)]
 pub struct NodeInfo {

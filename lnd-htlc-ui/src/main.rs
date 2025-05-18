@@ -3,8 +3,10 @@ mod types;
 mod utils;
 mod node;
 mod channels;
-mod litdService;
-mod unlockWallet;
+mod litd_service;
+mod unlock_wallet;
+mod mac_service;
+mod windows_service;
 
 use anyhow::Result;
 use serde::{Deserialize, Serialize};
@@ -52,7 +54,7 @@ pub struct InvoiceData {
 #[tokio::main]
 async fn main() -> Result<()> {
     // Start litd service
-    match litdService::start_litd_service() {
+    match litd_service::start_litd_service() {
         Ok(_) => {
             // Create channel for node status updates
             let (tx_node_status, mut rx_node_status) = mpsc::channel(10);
