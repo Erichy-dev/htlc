@@ -1,16 +1,52 @@
 use anyhow::{anyhow, Result};
+use chrono::{DateTime, NaiveDateTime, Utc};
 use sha2::{Digest, Sha256};
 use std::process::Command;
 use bincode;
 
-use crate::InvoiceData;
+use crate::{InvoiceData, InvoiceDetails, ListInvoicesResponse};
 
-pub fn list_invoices() -> Result<String> {
+pub fn list_invoices() -> Result<Vec<InvoiceDetails>> {
     let output = Command::new("lncli")
         .args(["--network", "testnet", "listinvoices"])
         .output()?;
     println!("{}", String::from_utf8_lossy(&output.stdout));
-    Ok(String::from_utf8_lossy(&output.stdout).to_string())
+
+    match serde_json::from_str::<ListInvoicesResponse>(&String::from_utf8_lossy(&output.stdout)) {
+        Ok(parsed_response) => {
+            let slint_invoices_vec: Vec<InvoiceDetails> = parsed_response.invoices.into_iter().map(|i| {
+                let formatted_date = match i.creation_date.parse::<i64>() {
+                    Ok(timestamp_seconds) => {
+                        // Ensure NaiveDateTime::from_timestamp_opt is used for safety
+                        NaiveDateTime::from_timestamp_opt(timestamp_seconds, 0)
+                            .map(|naive_dt| DateTime::<Utc>::from_naive_utc_and_offset(naive_dt, Utc).format("%Y-%m-%d %H:%M:%S UTC").to_string())
+                            .unwrap_or_else(|| {
+                                println!("Warning: Failed to format timestamp {} for r_hash {}", timestamp_seconds, i.r_hash);
+                                i.creation_date.clone() // Fallback to original string
+                            })
+                    }
+                    Err(e) => {
+                        println!("Warning: Failed to parse creation_date '{}' as i64 for r_hash {}: {}", i.creation_date, i.r_hash, e);
+                        i.creation_date.clone() // Fallback to original string if timestamp is not a valid i64
+                    }
+                };
+                InvoiceDetails {
+                    memo: i.memo.into(),
+                    r_hash: i.r_hash.into(),
+                    value: i.value.into(),
+                    state: i.state.into(),
+                    creation_date: formatted_date.into(),
+                }
+            }).collect();
+
+            Ok(slint_invoices_vec)
+        }
+        Err(e) => {
+            let error_msg = format!("Error parsing invoices JSON: {}", e);
+            println!("{}", error_msg);
+            Err(anyhow!("Error parsing invoices JSON: {}", e))
+        }
+    }
 } 
 
 pub fn create_invoice(preimage: String, amount: String, memo: String, db: &sled::Db) -> Result<String> {
