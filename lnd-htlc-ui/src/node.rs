@@ -54,9 +54,7 @@ pub fn node_status() -> NodeInfo {
                 }
 
                 if let Some(i) = stdout.find("\"identity_pubkey\":") {
-                    if let Some(j) = stdout[i + 18..i + 40].find(",") {
-                        identity_pubkey = (&stdout[i + 18..i + j - 1]).trim_matches('"').to_string();
-                    }
+                    identity_pubkey = stdout[i + 21..i + 87].to_string();
                 }
             } else {
                 let stderr = String::from_utf8_lossy(&output.stderr);
