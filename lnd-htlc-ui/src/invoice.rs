@@ -6,7 +6,15 @@ use bincode;
 
 use crate::{InvoiceData, InvoiceDetails, ListInvoicesResponse};
 
-pub fn list_invoices() -> Result<Vec<InvoiceDetails>> {
+pub struct InvoiceMinDetails {
+    memo: String,
+    r_hash: String,
+    value: String,
+    state: String,
+    creation_date: String,
+}
+
+pub fn list_invoices(db: &sled::Db) -> Result<Vec<InvoiceDetails>> {
     let output = Command::new("lncli")
         .args(["--network", "testnet", "listinvoices"])
         .output()?;
@@ -30,12 +38,22 @@ pub fn list_invoices() -> Result<Vec<InvoiceDetails>> {
                         i.creation_date.clone() // Fallback to original string if timestamp is not a valid i64
                     }
                 };
+
+                let is_own_invoice = match db.get(i.r_hash.as_bytes()) {
+                    Ok(Some(invoice_data)) => {
+                        bincode::deserialize::<InvoiceData>(&invoice_data)
+                            .map_or(false, |deserialized_struct| deserialized_struct.is_own_invoice)
+                    }
+                    _ => false,
+                };
+
                 InvoiceDetails {
                     memo: i.memo.into(),
                     r_hash: i.r_hash.into(),
                     value: i.value.into(),
                     state: i.state.into(),
                     creation_date: formatted_date.into(),
+                    is_own_invoice,
                 }
             }).collect();
 

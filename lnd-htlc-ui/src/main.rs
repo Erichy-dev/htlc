@@ -285,12 +285,15 @@ async fn main() -> Result<()> {
     });
 
     let window_weak_clone = window_weak.clone();
+    let db_clone = db.clone();
+
     window.on_manage_invoices(move || {
         println!("Listing invoices (UI callback invoked)...");
         let ui_handle_weak = window_weak_clone.clone();
+        let db_clone_for_invoices = db_clone.clone();
 
         tokio::spawn(async move {
-            match invoice::list_invoices() {
+            match invoice::list_invoices(&db_clone_for_invoices) {
                 Ok(slint_invoices_vec) => {
                     let _ = slint::invoke_from_event_loop(move || {
                         if let Some(window) = ui_handle_weak.upgrade() {
