@@ -4,7 +4,8 @@ import { WalletUnlockDialog } from "components/wallet_dialog.slint";
 import { ActionButton } from "components/action_button.slint";
 import { AppLayout } from "components/app_layout.slint";
 import { ChannelsView, Channel, PendingChannel } from "views/channels_view.slint";
-import { CreateCustomInvoiceView, PayInvoiceView, ClaimInvoiceView, CreateStandardInvoiceView } from "views/create_invoice_view.slint";
+import { CreateCustomInvoiceView } from "views/create_invoice_view.slint";
+import { CreateStandardInvoiceView } from "views/create_standard_invoice.slint";
 import { WelcomeView } from "views/welcome_view.slint";
 import { CreateChannelView } from "views/create_channel_view.slint";
 import { Sidebar } from "components/sidebar.slint";
@@ -41,7 +42,7 @@ export component MainWindow inherits Window {
     callback create-custom-invoice(string, string, string, string); // preimage_x, preimage_h, amount, memo
     callback pay-custom-invoice(string); // bolt11
     callback claim-custom-invoice(string, string); // hash, preimage
-    callback create-standard-invoice(string, int); // memo, amount
+    callback create-standard-invoice(string, string); // amount, memo
     callback open-lightning-channel(); // pubkey, amount (New callback for opening channel)
     callback manage-invoices(); // New callback for listing invoices
     callback settle-custom-invoice(string); // preimage_x
@@ -90,12 +91,9 @@ export component MainWindow inherits Window {
             root.create-channel-funding-txid = "";
             root.create-channel-in-progress = false;
         }
-        request-preimage-generation => { root.request-preimage-generation(); }
         manage-invoices => { root.manage-invoices(); }
         create-custom-invoice => { root.active-page = 3; }
-        pay-invoice => { root.active-page = 4; }
-        claim-invoice => { root.active-page = 5; }
-        create-standard-invoice => { root.active-page = 6; }
+        create-standard-invoice => { root.active-page = 4; }
 
         // Main content area based on active page
         if (active-page == -1): WelcomeView {
@@ -136,22 +134,11 @@ export component MainWindow inherits Window {
             payment-address <=> root.payment_address;
         }
         
-        if (active-page == 4): PayInvoiceView {
-            pay-clicked(bolt11) => {
-                root.pay-custom-invoice(bolt11);
+        if (active-page == 4): CreateStandardInvoiceView {
+            create-clicked(amount, memo) => {
+                root.create-standard-invoice(amount, memo);
             }
-        }
-        
-        if (active-page == 5): ClaimInvoiceView {
-            claim-clicked(hash, preimage) => {
-                root.claim-custom-invoice(hash, preimage);
-            }
-        }
-        
-        if (active-page == 6): CreateStandardInvoiceView {
-            create-clicked(memo, amount) => {
-                root.create-standard-invoice(memo, amount);
-            }
+            payment-address <=> root.payment_address;
         }
     }
 } 

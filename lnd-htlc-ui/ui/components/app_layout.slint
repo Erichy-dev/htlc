@@ -20,10 +20,7 @@ export component AppLayout inherits Rectangle {
     callback manage-channels();
     callback create-channel();
     callback manage-invoices();
-    callback request-preimage-generation();
     callback create-custom-invoice();
-    callback pay-invoice();
-    callback claim-invoice();
     callback create-standard-invoice();
     
     background: #202020;
@@ -49,8 +46,6 @@ export component AppLayout inherits Rectangle {
                 create-channel => { root.create-channel(); }
                 manage-invoices => { root.manage-invoices(); }
                 create-custom-invoice => { root.create-custom-invoice(); }
-                pay-invoice => { root.pay-invoice(); }
-                claim-invoice => { root.claim-invoice(); }
                 create-standard-invoice => { root.create-standard-invoice(); }
             }
             

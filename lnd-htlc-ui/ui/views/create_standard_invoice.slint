@@ -1,11 +1,8 @@
 import { LineEdit } from "std-widgets.slint";
 
-// 1. Create Custom Invoice View
-export component CreateCustomInvoiceView {
-    callback create-clicked(string, string, string, string); // preimage_x, preimage_h, amount, memo
-    callback request-preimage-generation();
-    in-out property <string> generated-preimage-x: "";
-    in-out property <string> generated-preimage-h: "";
+// 1. Create Standard Invoice View
+export component CreateStandardInvoiceView {
+    callback create-clicked(string, string); // amount, memo
     in-out property <string> payment-address: "";
     
     VerticalLayout {
@@ -13,7 +10,7 @@ export component CreateCustomInvoiceView {
         
         // Header
         Text {
-            text: "Create Custom Invoice";
+            text: "Create Standard Invoice";
             font-size: 24px;
             font-weight: 600;
             color: #e0e0e0;
@@ -29,55 +26,13 @@ export component CreateCustomInvoiceView {
                 spacing: 16px;
                 
                 Text {
-                    text: "Create a custom invoice with your own preimage:";
+                    text: "Create a standard invoice:";
                     color: #e0e0e0;
                     font-weight: 500;
                 }
 
                 Rectangle {
                     height: 8px;
-                }
-                
-                HorizontalLayout {
-                    alignment: center;
-                    
-                    TouchArea {
-                        Rectangle {
-                            width: 160px;
-                            height: 42px;
-                            border-radius: 4px;
-                            background: #5294e2;
-                            
-                            Text {
-                                text: "Generate H/X";
-                                color: white;
-                                font-weight: 600;
-                                horizontal-alignment: center;
-                                vertical-alignment: center;
-                            }
-                        }
-                        clicked => {
-                            root.request-preimage-generation();
-                        }
-                    }
-                }
-
-                Rectangle {
-                    height: 8px;
-                }
-
-                VerticalLayout {
-                    spacing: 8px;
-
-                    Text {
-                        text: "Preimage (X): \{root.generated_preimage_x}";
-                        color: #c0c0c0; // Lighter color for generated output
-                    }
-
-                    Text {
-                        text: "Payment Hash (H): \{root.generated_preimage_h}";
-                        color: #c0c0c0; // Lighter color for generated output
-                    }
                 }
                 
                 VerticalLayout {
@@ -113,12 +68,12 @@ export component CreateCustomInvoiceView {
                 }
                 
                 TouchArea {
-                    enabled: root.generated_preimage_x != "" && root.generated_preimage_h != "" && amount.text != "";
+                    enabled: amount.text != "";
                     Rectangle {
                         width: 160px;
                         height: 42px;
                         border-radius: 4px;
-                        background: root.generated_preimage_x != "" && root.generated_preimage_h != "" && amount.text != "" ? #5294e2 : #808080;
+                        background: amount.text != "" ? #5294e2 : #808080;
                         
                         Text {
                             text: "Create Invoice";
@@ -129,7 +84,7 @@ export component CreateCustomInvoiceView {
                         }
                     }
                     clicked => {
-                        root.create-clicked(root.generated_preimage_x, root.generated_preimage_h, amount.text, memo.text);
+                        root.create-clicked(amount.text, memo.text);
                     }
                 }
 

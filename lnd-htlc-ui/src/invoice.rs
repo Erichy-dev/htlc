@@ -81,7 +81,7 @@ pub fn create_invoice(preimage_x: String, preimage_h: String, amount: String, me
 
                     let invoice_stdout = String::from_utf8_lossy(&invoice_output.stdout).to_string();
                     let invoice_stderr = String::from_utf8_lossy(&invoice_output.stderr).to_string();
-                    println!("Decoded invoice stderr: {}", invoice_stderr);
+                    println!("{}", invoice_stderr);
                     match serde_json::from_str::<serde_json::Value>(&invoice_stdout) {
                         Ok(json) => {
                             let destination_pubkey = json.get("destination").and_then(|v| v.as_str()).unwrap_or("");
@@ -189,5 +189,65 @@ pub fn copy_payment_request(payment_request: String) -> Result<()> {
             println!("{}", err_msg); 
             Err(anyhow!(err_msg))
         }
+    }
+}
+
+pub fn create_standard_invoice(amount: String, memo: String, db: &sled::Db) -> Result<String> {
+    let output = Command::new("lncli")
+        .args(["--network", "testnet", "addinvoice", "--amt", &amount, "--memo", &memo])
+        .output()?;
+
+    let stdout = String::from_utf8_lossy(&output.stdout).to_string();
+    match serde_json::from_str::<serde_json::Value>(&stdout) {
+        Ok(json) => {
+            if let Some(payment_addr) = json.get("payment_addr").and_then(|v| v.as_str()) {
+                if let Some(r_hash) = json.get("r_hash").and_then(|v| v.as_str()) {
+                    if let Some(payment_request) = json.get("payment_request").and_then(|v| v.as_str()) {
+                        let invoice_output = Command::new("lncli")
+                            .args(["--network", "testnet", "decodepayreq", payment_request])
+                            .output()?;
+    
+                        let invoice_stdout = String::from_utf8_lossy(&invoice_output.stdout).to_string();
+                        let invoice_stderr = String::from_utf8_lossy(&invoice_output.stderr).to_string();
+                        println!("{}", invoice_stderr);
+                        
+                        match serde_json::from_str::<serde_json::Value>(&invoice_stdout) {
+                            Ok(json) => {
+                                let destination_pubkey = json.get("destination").and_then(|v| v.as_str()).unwrap_or("");
+                                let identity_pubkey = db.get(b"identity_pubkey")?.unwrap_or(sled::IVec::from(b""));
+                                let identity_pubkey_str = String::from_utf8_lossy(&identity_pubkey).to_string();
+    
+                                println!("destination_pubkey: {}", destination_pubkey);
+                                println!("identity_pubkey: {}", identity_pubkey_str);
+    
+                                let is_own_invoice = destination_pubkey == identity_pubkey_str;
+    
+                                let invoice_data_to_save = InvoiceData {
+                                    preimage_x: "".to_string(),
+                                    preimage_h: r_hash.to_string(),
+                                    payment_address: payment_addr.to_string(),
+                                    r_hash: r_hash.to_string(),
+                                    is_own_invoice,
+                                };
+                                let serialized_invoice_data = bincode::serialize(&invoice_data_to_save)?;
+                                db.insert(r_hash.as_bytes(), serialized_invoice_data)?;
+                                Ok(payment_addr.to_string())
+                            }
+                            Err(e) => {
+                                println!("Failed to parse JSON response: {}", e);
+                                Err(anyhow!("Failed to parse JSON response: {}", e))
+                            }
+                        }
+                    } else {
+                        Err(anyhow!("No payment_request found in response"))
+                    }
+                } else {
+                    Err(anyhow!("No r_hash found in response"))
+                }
+            } else {
+                Err(anyhow!("No payment_addr found in response"))
+            }
+        }
+        Err(e) => Err(anyhow!("Failed to parse JSON response: {}", e))
     }
 }

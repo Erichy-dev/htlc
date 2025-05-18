@@ -445,6 +445,31 @@ async fn main() -> Result<()> {
                 }
             });
 
+            let standard_window_weak_clone = window_weak.clone();
+            let db_clone_for_create = db.clone();
+
+            window.on_create_standard_invoice(move |amount, memo| {
+                if let Some(window) = standard_window_weak_clone.upgrade() {
+                    println!("Creating standard invoice with amount: {}, memo: {}", amount, memo);
+
+                    match invoice::create_standard_invoice(amount.to_string(), memo.to_string(), &db_clone_for_create) {
+                        Ok(output) => {
+                            window.set_status_message(SharedString::from(format!(
+                                "Created standard invoice with memo: {}, amount: {}",
+                                memo, amount
+                            )));
+                            window.set_payment_address(SharedString::from(output));
+                        }
+                        Err(e) => {
+                            window.set_status_message(SharedString::from(format!(
+                                "Error creating standard invoice: {}",
+                                e
+                            )));
+                        }
+                    }
+                }
+            });
+
             window.run()?;
             Ok(())
         }
