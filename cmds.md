@@ -18,6 +18,8 @@ lncli --network testnet openchannel <pub-key> <amount>
 lncli --network testnet pendingchannels
 
 lncli --network testnet listchannels
+
+lncli --network testnet closechannel --funding_txid=<channelpoint>
 ```
 
 ### project
@@ -45,5 +47,11 @@ Write-Host "Hash     (H): $H"
 ```bash
 lncli --network testnet addholdinvoice $H --amt=1000 --memo="My custom invoice"
 
-lncli --network testnet lookupinvoice $H
+lncli --network testnet decodepayreq <payment-request>
+
+lncli --network testnet cancelinvoice <payment_hash>
+
+lncli --network testnet payinvoice <payment_request_string>
+
+lncli --network testnet settleinvoice <preimage>
 ```
