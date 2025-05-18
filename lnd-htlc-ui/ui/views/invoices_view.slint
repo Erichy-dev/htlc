@@ -23,91 +23,124 @@ export component InvoicesView inherits VerticalBox {
         padding-bottom: 20px;
     }
 
-    ScrollView {
-        viewport-height: 400px; // Adjust as needed
-        if invoices.length == 0 : VerticalBox {
-            Text {
-                text: "No invoices found";
-                horizontal-alignment: center;
-                vertical-alignment: center;
-                color: #888;
-                font-size: 16px;
-            }
+    if invoices.length == 0 : VerticalBox {
+        Text {
+            text: "No invoices found";
+            horizontal-alignment: center;
+            vertical-alignment: center;
+            color: #888;
+            font-size: 16px;
         }
-        if invoices.length > 0 : VerticalLayout {
-            
-            for invoice_item in invoices: Rectangle {
-                padding: 10px;
-                height: 60px;
-                background: #2a2a2a;
-                border-radius: 8px;
+    }
+    
+    if invoices.length > 0 : Rectangle {
+        background: #2a2a2a;
+        border-radius: 8px;
 
-                VerticalLayout {
-                    spacing: 12px;
-                    padding: 16px;
+        ScrollView {
+            vertical-stretch: 1;
+            horizontal-stretch: 1;
+        
+            VerticalLayout {
+                padding: 16px;
+                spacing: 12px;
 
-                    HorizontalLayout {
-                        spacing: 16px;
-
-                        VerticalLayout {
-                            Text { 
-                                text: invoice_item.memo;
-                                font-size: 18px;
-                                font-weight: 600;
-                                color: #ffffff;
-                            }
-
-                            HorizontalLayout {
-                                spacing: 8px;
-                                alignment: start;
-
-                                Rectangle {
-                                    width: 12px;
-                                    padding: 4px;
-                                    height: 12px;
-                                    border-radius: 6px;
-                                    background: invoice_item.state == "SETTLED" ? #4caf50 : #ffc107;
+                for invoice_item in invoices: Rectangle {
+                    padding: 10px;
+                    height: 120px;
+                    background: invoice_item.state == "OPEN" ? #2d3b2d : #3b2d2d;
+                    border-radius: 8px;
+    
+                    VerticalLayout {
+                        spacing: 12px;
+                        padding: 16px;
+    
+                        HorizontalLayout {
+                            spacing: 16px;
+    
+                            VerticalLayout {
+                                Text { 
+                                    text: "Memo: " + invoice_item.memo;
+                                    font-size: 18px;
+                                    font-weight: 600;
+                                    color: #ffffff;
                                 }
-
+                            }
+    
+                            Rectangle {
+                                width: 1px;
+                                background: #404040;
+                            }
+    
+                            VerticalLayout {
+                                alignment: center;
                                 Text {
-                                    text: invoice_item.state;
-                                    font-size: 14px;
-                                    color: invoice_item.state == "SETTLED" ? #4caf50 : #ffc107;
+                                    text: invoice_item.value + " sats";
+                                    font-size: 20px;
+                                    font-weight: 700;
+                                    color: #5294e2;
+                                }
+                                Text {
+                                    text: invoice_item.creation_date;
+                                    font-size: 12px;
+                                    color: #808080;
                                 }
                             }
+
+                            if invoice_item.is_own_invoice && invoice_item.state == "OPEN":
+                                Rectangle {
+                                    padding: 12px;
+                                    background: #2f22ea;
+                                    border-radius: 8px;
+                                    width: 60px;
+                                    height: 30px;
+                                    
+                                    Text {
+                                        font-size: 16px;
+                                        
+                                        text: "Pending";
+                                    }
+                                }
+                            
+                            if !invoice_item.is_own_invoice && invoice_item.state == "OPEN":
+                                Rectangle {
+                                    padding: 12px;
+                                    background: #0cbaef;
+                                    border-radius: 8px;
+                                    width: 60px;
+                                    height: 30px;
+                                    
+                                    Text {
+                                        font-size: 16px;
+                                        
+                                        text: "Pay";
+                                    }
+                                }
+
+                            if invoice_item.state == "SETTLED":
+                                Rectangle {
+                                    padding: 12px;
+                                    background: #0cef54;
+                                    border-radius: 8px;
+                                    width: 60px;
+                                    height: 30px;
+                                    
+                                    Text {
+                                        font-size: 16px;
+                                        
+                                        text: "Settled";
+                                    }
+                                }
                         }
-
-                        Rectangle {
-                            width: 1px;
-                            background: #404040;
+                        
+                        Text {
+                            text: "Hash: " + invoice_item.r_hash;
+                            font-size: 12px;
+                            color: #e4e0e0;
+                            opacity: 0.7;
                         }
-
-                        VerticalLayout {
-                            alignment: center;
-                            Text {
-                                text: invoice_item.value + " sats";
-                                font-size: 20px;
-                                font-weight: 700;
-                                color: #5294e2;
-                            }
-                            Text {
-                                text: invoice_item.creation_date;
-                                font-size: 12px;
-                                color: #808080;
-                            }
-                        }
-                    }
-
-                    Text {
-                        text: "Hash: " + invoice_item.r_hash;
-                        font-size: 12px;
-                        color: #e4e0e0;
-                        opacity: 0.7;
-                    }
-                }   
-
-                Rectangle {
-                    height: 8px;
+                    }   
+    
                 }
             }
         }

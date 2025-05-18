@@ -6,14 +6,6 @@ use bincode;
 
 use crate::{InvoiceData, InvoiceDetails, ListInvoicesResponse};
 
-pub struct InvoiceMinDetails {
-    memo: String,
-    r_hash: String,
-    value: String,
-    state: String,
-    creation_date: String,
-}
-
 pub fn list_invoices(db: &sled::Db) -> Result<Vec<InvoiceDetails>> {
     let output = Command::new("lncli")
         .args(["--network", "testnet", "listinvoices"])
