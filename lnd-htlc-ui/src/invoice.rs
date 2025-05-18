@@ -34,7 +34,11 @@ pub fn list_invoices(db: &sled::Db) -> Result<Vec<InvoiceDetails>> {
                 let is_own_invoice = match db.get(i.r_hash.as_bytes()) {
                     Ok(Some(invoice_data)) => {
                         bincode::deserialize::<InvoiceData>(&invoice_data)
-                            .map_or(false, |deserialized_struct| deserialized_struct.is_own_invoice)
+                            .map_or(false, |deserialized_struct| {
+                                println!("Preimage X: {}", deserialized_struct.preimage_x);
+                                println!("Preimage H: {}", deserialized_struct.preimage_h);
+                                deserialized_struct.is_own_invoice
+                            })
                     }
                     _ => false,
                 };
@@ -61,7 +65,7 @@ pub fn list_invoices(db: &sled::Db) -> Result<Vec<InvoiceDetails>> {
 
 pub fn create_invoice(preimage_x: String, preimage_h: String, amount: String, memo: String, db: &sled::Db) -> Result<String> {
     let output = Command::new("lncli")
-        .args(["--network", "testnet", "addholdinvoice", &preimage_x, "--amt", &amount, "--memo", &memo])
+        .args(["--network", "testnet", "addholdinvoice", &preimage_h, "--amt", &amount, "--memo", &memo])
         .output()?;
     println!("{}", String::from_utf8_lossy(&output.stdout));
     let stdout = String::from_utf8_lossy(&output.stdout).to_string();
@@ -91,11 +95,11 @@ pub fn create_invoice(preimage_x: String, preimage_h: String, amount: String, me
                                 preimage_x: preimage_x.clone(),
                                 preimage_h: preimage_h.clone(),
                                 payment_address: payment_addr.to_string(),
-                                r_hash: preimage_x.to_string(),
+                                r_hash: preimage_h.to_string(),
                                 is_own_invoice,
                             };
                             let serialized_invoice_data = bincode::serialize(&invoice_data_to_save)?;
-                            db.insert(preimage_x.as_bytes(), serialized_invoice_data)?;
+                            db.insert(preimage_h.as_bytes(), serialized_invoice_data)?;
                             
                             Ok(payment_addr.to_string())
                         }

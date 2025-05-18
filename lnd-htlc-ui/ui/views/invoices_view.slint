@@ -48,7 +48,12 @@ export component InvoicesView inherits VerticalBox {
                 for invoice_item in invoices: Rectangle {
                     padding: 10px;
                     height: 120px;
-                    background: invoice_item.state == "OPEN" ? #2d3b2d : #3b2d2d;
+                    background: invoice_item.state == "OPEN" ? #2d3b2d : 
+                               invoice_item.state == "PENDING" ? #3b3b2d :
+                               invoice_item.state == "SETTLED" ? #2d2d3b :
+                               invoice_item.state == "CANCELED" ? #3b2d2d :
+                               invoice_item.state == "ACCEPTED" ? #2d3b3b :
+                               #2a2a2a;
                     border-radius: 8px;
     
                     VerticalLayout {
@@ -117,7 +122,7 @@ export component InvoicesView inherits VerticalBox {
                                     }
                                 }
                             
-                                if !invoice_item.is_own_invoice && invoice_item.state == "ACCEPTED":
+                                if invoice_item.is_own_invoice && invoice_item.state == "ACCEPTED":
                                     Rectangle {
                                         padding: 12px;
                                         background: #0cef54;
