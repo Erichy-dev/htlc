@@ -21,6 +21,18 @@ fn get_launch_agents_dir_path() -> Result<PathBuf> {
 }
 
 pub fn start_litd_service() -> Result<()> {
+    // Determine the os type
+    let os_type = Command::new("uname")
+        .arg("-s")
+        .output()
+        .context("Failed to execute uname command")?;
+    let os_type = String::from_utf8_lossy(&os_type.stdout).trim().to_string();
+    println!("OS type: {}", os_type);
+
+    if os_type != "Darwin" {
+        return Err(anyhow::anyhow!("This script is only supported on macOS"));
+    }
+
     // Check if the service is already running
     // Using sh -c to correctly interpret pipes
     let check_output = Command::new("sh")
@@ -31,8 +43,8 @@ pub fn start_litd_service() -> Result<()> {
 
     // If grep finds the string, it exits with 0. If not, it exits with 1.
     // We also print stdout/stderr for debugging.
-    println!("launchctl list stdout: {}", String::from_utf8_lossy(&check_output.stdout));
-    println!("launchctl list stderr: {}", String::from_utf8_lossy(&check_output.stderr));
+    println!("{}", String::from_utf8_lossy(&check_output.stdout));
+    println!("{}", String::from_utf8_lossy(&check_output.stderr));
 
     if check_output.status.success() { // success() means grep found the service
         println!("Service 'com.btc.litd' appears to be already loaded/running.");
@@ -56,8 +68,8 @@ pub fn start_litd_service() -> Result<()> {
         .arg(&launch_agents_dir) // Copy to the directory
         .output()
         .context(format!("Failed to copy plist to {:?}", launch_agents_dir))?;
-    println!("cp stdout: {}", String::from_utf8_lossy(&cp_output.stdout));
-    println!("cp stderr: {}", String::from_utf8_lossy(&cp_output.stderr));
+    println!("{}", String::from_utf8_lossy(&cp_output.stdout));
+    println!("{}", String::from_utf8_lossy(&cp_output.stderr));
     if !cp_output.status.success() {
         return Err(anyhow::anyhow!("Failed to copy plist file: {}", String::from_utf8_lossy(&cp_output.stderr)));
     }
@@ -67,8 +79,8 @@ pub fn start_litd_service() -> Result<()> {
         .arg(&plist_path)
         .output()
         .context(format!("Failed to chmod plist at {:?}", plist_path))?;
-    println!("chmod stdout: {}", String::from_utf8_lossy(&chmod_output.stdout));
-    println!("chmod stderr: {}", String::from_utf8_lossy(&chmod_output.stderr));
+    println!("{}", String::from_utf8_lossy(&chmod_output.stdout));
+    println!("{}", String::from_utf8_lossy(&chmod_output.stderr));
     if !chmod_output.status.success() {
         return Err(anyhow::anyhow!("Failed to chmod plist file: {}", String::from_utf8_lossy(&chmod_output.stderr)));
     }
@@ -78,8 +90,8 @@ pub fn start_litd_service() -> Result<()> {
         .arg(&plist_path)
         .output()
         .context(format!("Failed to load plist with launchctl from {:?}", plist_path))?;
-    println!("launchctl load stdout: {}", String::from_utf8_lossy(&load_output.stdout));
-    println!("launchctl load stderr: {}", String::from_utf8_lossy(&load_output.stderr));
+    println!("{}", String::from_utf8_lossy(&load_output.stdout));
+    println!("{}", String::from_utf8_lossy(&load_output.stderr));
      if !load_output.status.success() {
         // It's possible the service is already loaded but not running, or some other error.
         // launchctl load can return non-zero if already loaded. Consider this not a fatal error
@@ -93,8 +105,8 @@ pub fn start_litd_service() -> Result<()> {
         .arg("com.btc.litd") // Use the label here
         .output()
         .context("Failed to start service with launchctl start")?;
-    println!("launchctl start stdout: {}", String::from_utf8_lossy(&start_output.stdout));
-    println!("launchctl start stderr: {}", String::from_utf8_lossy(&start_output.stderr));
+    println!("{}", String::from_utf8_lossy(&start_output.stdout));
+    println!("{}", String::from_utf8_lossy(&start_output.stderr));
     if !start_output.status.success() {
         println!("Warning: 'launchctl start' exited with non-zero status. Stderr: {}", String::from_utf8_lossy(&start_output.stderr));
     }
@@ -112,8 +124,8 @@ pub fn stop_litd_service() -> Result<()> {
         .arg("com.btc.litd") // Use the label
         .output()
         .context("Failed to execute launchctl stop command")?;
-    println!("launchctl stop stdout: {}", String::from_utf8_lossy(&stop_service_output.stdout));
-    println!("launchctl stop stderr: {}", String::from_utf8_lossy(&stop_service_output.stderr));
+    println!("{}", String::from_utf8_lossy(&stop_service_output.stdout));
+    println!("{}", String::from_utf8_lossy(&stop_service_output.stderr));
     // We don't necessarily fail if stop returns non-zero, it might not have been running.
 
     // Then unload it
@@ -122,8 +134,8 @@ pub fn stop_litd_service() -> Result<()> {
         .arg(&plist_path)
         .output()
         .context(format!("Failed to unload plist with launchctl from {:?}", plist_path))?;
-    println!("launchctl unload stdout: {}", String::from_utf8_lossy(&unload_output.stdout));
-    println!("launchctl unload stderr: {}", String::from_utf8_lossy(&unload_output.stderr));
+    println!("{}", String::from_utf8_lossy(&unload_output.stdout));
+    println!("{}", String::from_utf8_lossy(&unload_output.stderr));
     if !unload_output.status.success() {
         // It's possible it was already unloaded.
          println!("Warning: 'launchctl unload' exited with non-zero status. Stderr: {}", String::from_utf8_lossy(&unload_output.stderr));
