@@ -50,7 +50,7 @@ pub fn node_status() -> NodeInfo {
                 }
 
                 if let Some(i) = stdout.find("\"synced_to_chain\":") {
-                    is_synced = stdout[i + 18..i + 23].contains("true");
+                    is_synced = stdout[i + 17..i + 25].trim().contains("true");
                 }
 
                 if let Some(i) = stdout.find("\"identity_pubkey\":") {
