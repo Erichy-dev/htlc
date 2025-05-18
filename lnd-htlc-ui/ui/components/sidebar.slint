@@ -9,6 +9,7 @@ export component Sidebar inherits Rectangle {
     in property <bool> status-checking: false;
     
     // Callbacks to parent - UI navigation only
+    callback home();
     callback manage-channels();
     callback create-channel();
     callback create-custom-invoice();
@@ -24,59 +25,56 @@ export component Sidebar inherits Rectangle {
         padding: 16px;
         spacing: 12px;
         
-        Text {
-            text: "Lightning Network";
-            font-size: 18px;
-            font-weight: 700;
-            color: #e0e0e0;
-        }
-        
         // Node status indicator - simplified to just show status
         Rectangle {
             height: 80px;
             background: #252525;
             border-radius: 4px;
             
-            VerticalLayout {
-                padding: 10px;
-                spacing: 6px;
-                
-                HorizontalLayout {
+            TouchArea {
+                VerticalLayout {
+                    padding: 10px;
                     spacing: 6px;
                     
-                    Rectangle {
-                        width: 12px;
-                        height: 12px;
-                        border-radius: 6px;
-                        background: root.node-is-running ? #20c997 : #dc3545;
+                    HorizontalLayout {
+                        spacing: 6px;
+                        
+                        Rectangle {
+                            width: 12px;
+                            height: 12px;
+                            border-radius: 6px;
+                            background: root.node-is-running ? #20c997 : #dc3545;
+                        }
+                        
+                        Text {
+                            text: root.node-is-running ? "Node Running" : "Node Offline";
+                            color: root.node-is-running ? #e0e0e0 : #ffb0a3;
+                            font-weight: 500;
+                            vertical-alignment: center;
+                        }
                     }
                     
-                    Text {
-                        text: root.node-is-running ? "Node Running" : "Node Offline";
-                        color: root.node-is-running ? #e0e0e0 : #ffb0a3;
-                        font-weight: 500;
-                        vertical-alignment: center;
+                    HorizontalLayout {
+                        spacing: 8px;
+                        
+                        // Status checking indicator
+                        Rectangle {
+                            width: 8px;
+                            height: 8px;
+                            border-radius: 4px;
+                            background: root.status-checking ? #3498db : transparent;
+                            visible: root.status-checking;
+                        }
+                        
+                        Text {
+                            text: "Sync: " + root.node-sync-status;
+                            color: #bbbbbb;
+                            font-size: 13px;
+                        }
                     }
                 }
-                
-                HorizontalLayout {
-                    spacing: 8px;
-                    
-                    // Status checking indicator
-                    Rectangle {
-                        width: 8px;
-                        height: 8px;
-                        border-radius: 4px;
-                        background: root.status-checking ? #3498db : transparent;
-                        visible: root.status-checking;
-                    }
-                    
-                    Text {
-                        text: "Sync: " + root.node-sync-status;
-                        color: #bbbbbb;
-                        font-size: 13px;
-                    }
-                }
+
+                clicked => { root.home(); }
             }
         }
         

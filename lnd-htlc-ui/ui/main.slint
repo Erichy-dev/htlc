@@ -80,6 +80,7 @@ export component MainWindow inherits Window {
         pending-channels: root.pending_channels;
         active-page <=> root.active-page;
         
+        home => { root.active-page = -1; }
         manage-channels => { root.manage-channels(); }
         create-channel => { 
             root.active-page = 1; 
