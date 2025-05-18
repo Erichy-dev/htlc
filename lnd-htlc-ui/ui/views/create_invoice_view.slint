@@ -2,7 +2,7 @@ import { LineEdit } from "std-widgets.slint";
 
 // 1. Create Custom Invoice View
 export component CreateCustomInvoiceView {
-    callback create-clicked(string, string, string); // preimage, amount, memo
+    callback create-clicked(string, string, string, string); // preimage_x, preimage_h, amount, memo
     callback request-preimage-generation();
     in-out property <string> generated-preimage-x: "";
     in-out property <string> generated-preimage-h: "";
@@ -129,7 +129,7 @@ export component CreateCustomInvoiceView {
                         }
                     }
                     clicked => {
-                        root.create-clicked(root.generated_preimage_x, amount.text, memo.text);
+                        root.create-clicked(root.generated_preimage_x, root.generated_preimage_h, amount.text, memo.text);
                     }
                 }
 

@@ -38,7 +38,7 @@ export component MainWindow inherits Window {
     callback manage-channels();
     callback request-preimage-generation();
     callback connect-peer(string, string, string); // pubkey, host, port
-    callback create-custom-invoice(string, string, string); // preimage, amount, memo
+    callback create-custom-invoice(string, string, string, string); // preimage_x, preimage_h, amount, memo
     callback pay-custom-invoice(string); // bolt11
     callback claim-custom-invoice(string, string); // hash, preimage
     callback create-standard-invoice(string, int); // memo, amount
@@ -120,8 +120,8 @@ export component MainWindow inherits Window {
         }
         
         if (active-page == 3): CreateCustomInvoiceView {
-            create-clicked(preimage, amount, memo) => {
-                root.create-custom-invoice(preimage, amount, memo);
+            create-clicked(preimage_x, preimage_h, amount, memo) => {
+                root.create-custom-invoice(preimage_x, preimage_h, amount, memo);
             }
             request-preimage-generation => {
                 root.request-preimage-generation();

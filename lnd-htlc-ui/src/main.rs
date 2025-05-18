@@ -42,6 +42,7 @@ pub struct InvoiceData {
     preimage_x: String,
     preimage_h: String,
     payment_address: String,
+    r_hash: String,
     is_own_invoice: bool,
 }
 
@@ -328,14 +329,15 @@ async fn main() -> Result<()> {
 
     let window_weak_clone = window_weak.clone();
     let db_clone_for_create = db.clone();
-    window.on_create_custom_invoice(move |preimage, amount, memo| {
+
+    window.on_create_custom_invoice(move |preimage_x, preimage_h, amount, memo| {
         if let Some(window) = window_weak_clone.upgrade() {
-            println!("Creating custom invoice with preimage: {}, amount: {}, memo: {}", preimage, amount, memo);
-            match invoice::create_invoice(preimage.to_string(), amount.to_string(), memo.to_string(), &db_clone_for_create) {
+            println!("Creating custom invoice with preimage: {}, amount: {}, memo: {}", preimage_x, amount, memo);
+            match invoice::create_invoice(preimage_x.to_string(), preimage_h.to_string(), amount.to_string(), memo.to_string(), &db_clone_for_create) {
                 Ok(output) => {
                     window.set_status_message(SharedString::from(format!(
                         "Created invoice with preimage: {}, amount: {}, memo: {}",
-                        preimage, amount, memo
+                        preimage_x, amount, memo
                     )));
                     window.set_payment_address(SharedString::from(output));
                     window.set_generated_preimage_h(SharedString::from(""));
