@@ -7,6 +7,7 @@ export struct InvoiceDetails {
     state: string,
     creation_date: string,
     is_own_invoice: bool,
+    payment_request: string,
 }
 
 export component InvoicesView inherits VerticalBox {
@@ -14,6 +15,8 @@ export component InvoicesView inherits VerticalBox {
     callback list-invoices-requested();
     // Callback to settle an invoice
     callback settle-custom-invoice(string);
+    // Callback to copy payment request to clipboard
+    callback copy-to-clipboard(string);
     // Property to hold the list of invoices
     in-out property <[InvoiceDetails]> invoices: [];
 
@@ -181,6 +184,41 @@ export component InvoicesView inherits VerticalBox {
                             font-size: 12px;
                             color: #e4e0e0;
                             opacity: 0.7;
+                        }
+
+                        HorizontalLayout {
+                            spacing: 10px;
+
+                            Text {
+                                text: "Payment Request: " + invoice_item.payment_request;
+                                font-size: 5px;
+                                color: #e4e0e0;
+                                opacity: 0.7;
+                                width: 100px;
+                                wrap: TextWrap.word-wrap;
+                            }
+
+                            TouchArea {
+                                width: 24px;
+                                height: 24px;
+                                
+                                Rectangle {
+                                    background: #444;
+                                    border-radius: 4px;
+                                    width: 24px;
+                                    height: 24px;
+                                    
+                                    Text {
+                                        text: "📋";
+                                        font-size: 16px;
+                                    }
+                                }
+                                
+                                clicked => {
+                                    // Copy payment request to clipboard
+                                    root.copy-to-clipboard(invoice_item.payment_request);
+                                }
+                            }
                         }
                     }   
     

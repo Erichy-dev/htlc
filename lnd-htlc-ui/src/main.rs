@@ -28,6 +28,7 @@ struct LnCliInvoice {
     value: String, // Value is often a string in lncli output
     state: String, // e.g., "OPEN", "SETTLED"
     creation_date: String, // Unix timestamp string
+    payment_request: String,
     // Add other fields if needed, like amt_paid_sat, is_keysend etc.
 }
 
@@ -415,6 +416,15 @@ async fn main() -> Result<()> {
                     )));
                 }
             }
+        }
+    });
+
+    let copy_window_weak_clone = window_weak.clone();
+    window.on_copy_to_clipboard(move |payment_request| {
+        if let Some(window) = copy_window_weak_clone.upgrade() {
+            window.set_status_message(SharedString::from(format!(
+                "Copied payment request to clipboard",
+            )));
         }
     });
 

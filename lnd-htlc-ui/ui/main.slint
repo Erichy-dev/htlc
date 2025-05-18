@@ -45,7 +45,8 @@ export component MainWindow inherits Window {
     callback open-lightning-channel(); // pubkey, amount (New callback for opening channel)
     callback manage-invoices(); // New callback for listing invoices
     callback settle-custom-invoice(string); // preimage_x
-
+    callback copy-to-clipboard(string); // payment_request
+    
     // Action page tracking
     in-out property <int> active-page: -1; // 0 = manage channels, 1 = create channel, 2 = generate x/h, 3 = custom invoice, 4 = pay invoice, 5 = claim invoice, 6 = standard invoice
     
@@ -120,6 +121,7 @@ export component MainWindow inherits Window {
         if (active-page == 2): InvoicesView {
             invoices <=> root.all_invoices;
             settle-custom-invoice(r_hash) => { root.settle-custom-invoice(r_hash); }
+            copy-to-clipboard(payment_request) => { root.copy-to-clipboard(payment_request); }
         }
         
         if (active-page == 3): CreateCustomInvoiceView {

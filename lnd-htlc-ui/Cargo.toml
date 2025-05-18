@@ -4,24 +4,25 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-slint = "1.3"
-tokio = { version = "1.36", features = ["full"] }
+slint = "1.5"
+tokio = { version = "1", features = ["full"] }
 tonic = { version = "0.10", features = ["tls", "transport"] }
 prost = "0.12"
 prost-types = "0.12"
-hex = "0.4"
+hex = "0.4.3"
 rand = "0.8"
-sha2 = "0.10"
+sha2 = "0.10.8"
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 toml = "0.8"
-anyhow = "1.0"
+anyhow = "1.0.82"
 notify = "6.1"
 dirs = "6.0.0"
-chrono = "0.4"
+chrono = "0.4.38"
 shellexpand = "3.1"
-sled = "0.34"
-bincode = "1.3"
+sled = "0.34.7"
+bincode = "1.3.3"
+copypasta = "0.10.1"
 
 [build-dependencies]
 slint-build = "1.3"

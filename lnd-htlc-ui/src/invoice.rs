@@ -3,6 +3,7 @@ use chrono::{DateTime, NaiveDateTime, Utc};
 use sha2::{Digest, Sha256};
 use std::process::Command;
 use bincode;
+use copypasta::{ClipboardContext, ClipboardProvider};
 
 use crate::{InvoiceData, InvoiceDetails, ListInvoicesResponse};
 
@@ -50,6 +51,7 @@ pub fn list_invoices(db: &sled::Db) -> Result<Vec<InvoiceDetails>> {
                     state: i.state.into(),
                     creation_date: formatted_date.into(),
                     is_own_invoice,
+                    payment_request: i.payment_request.into(),
                 }
             }).collect();
 
@@ -164,5 +166,12 @@ pub fn settle_invoice(preimage_h: String, db: &sled::Db) -> Result<()> {
         return Err(anyhow!("Failed to settle invoice: {}", stderr));
     }
 
+    Ok(())
+}
+
+pub fn copy_payment_request(payment_request: String) -> Result<()> {
+    let mut ctx = ClipboardContext::new().map_err(|e| anyhow::anyhow!("Failed to initialize clipboard: {}", e))?;
+    ctx.set_contents(payment_request.clone()).map_err(|e| anyhow::anyhow!("Failed to copy to clipboard: {}", e))?;
+    println!("Copied to clipboard: {}", payment_request);
     Ok(())
 }
