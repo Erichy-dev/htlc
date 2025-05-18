@@ -4,6 +4,7 @@ mod utils;
 mod node;
 mod channels;
 mod litdService;
+mod unlockWallet;
 
 use anyhow::Result;
 use serde::{Deserialize, Serialize};
@@ -72,26 +73,26 @@ async fn main() -> Result<()> {
                 let mut interval = interval(Duration::from_secs(10));
                 loop {
                     interval.tick().await;
-                    let info = node_status();
+                    let info = node_status().await;
                     if let Err(_) = tx_node_status.send(info).await {
                         break; 
                     }
                 }
             });
             
-            let initial_node_info = node_status();
+            let initial_node_info = node_status().await;
             let window = MainWindow::new().map_err(|e| anyhow::anyhow!("Failed to create main window: {}", e))?;
             let window_weak = Arc::new(window.as_weak());
 
             let node_db_clone = db.clone();
             node_db_clone.insert(b"identity_pubkey", initial_node_info.identity_pubkey.as_bytes());
 
-            update_ui_with_node_info(&window_weak, &initial_node_info);
+            update_ui_with_node_info(&window_weak, initial_node_info);
             
             let window_weak_for_updates = window_weak.clone();
             tokio::spawn(async move {
                 while let Some(info) = rx_node_status.recv().await {
-                    update_ui_with_node_info(&window_weak_for_updates, &info);
+                    update_ui_with_node_info(&window_weak_for_updates, info);
                 }
             });
 
@@ -452,34 +453,41 @@ async fn main() -> Result<()> {
     }
 }
 
-fn update_ui_with_node_info(window_weak: &Arc<slint::Weak<MainWindow>>, node_info: &NodeInfo) {
-    if let Some(window) = window_weak.upgrade() {
-        window.set_node_is_running(node_info.running);
-        if node_info.running {
-            window.set_wallet_needs_unlock(false);
-        }
-        let sync_status = if node_info.synced {
-            format!("Synced: {} \n(h: {})", node_info.network, node_info.block_height)
-        } else {
-            format!("Syncing: {} \n(h: {})", node_info.network, node_info.block_height)
-        };
-        window.set_node_sync_status(SharedString::from(sync_status));
-        window.set_status_checking(true); 
-        let window_weak_clone = window_weak.clone();
-        tokio::spawn(async move {
-            tokio::time::sleep(Duration::from_secs(1)).await;
-            if let Some(window) = window_weak_clone.upgrade() {
-                window.set_status_checking(false);
+fn update_ui_with_node_info(window_weak: &Arc<slint::Weak<MainWindow>>, node_info: NodeInfo) {
+    let window_weak_clone = window_weak.clone();
+    // node_info is now owned
+    let _ = slint::invoke_from_event_loop(move || {
+        if let Some(window) = window_weak_clone.upgrade() {
+            window.set_node_is_running(node_info.running);
+            if node_info.running {
+                window.set_wallet_needs_unlock(false);
             }
-        });
-        if node_info.running {
-            window.set_status_message(SharedString::from(
-                format!("Connected to LND v{}", node_info.version),
-            ));
-        } else {
-            window.set_status_message(SharedString::from(
-                "UI Demo Mode - API connectivity disabled",
-            ));
+            let sync_status = if node_info.synced {
+                format!("Synced: {} \n(h: {})", node_info.network, node_info.block_height)
+            } else {
+                format!("Syncing: {} \n(h: {})", node_info.network, node_info.block_height)
+            };
+            window.set_node_sync_status(SharedString::from(sync_status));
+            window.set_status_checking(true); 
+
+            let timer_window_weak = window.as_weak(); // Use window's own weak ref for timer
+            slint::Timer::single_shot(Duration::from_secs(1), move || {
+                if let Some(window) = timer_window_weak.upgrade() {
+                    window.set_status_checking(false);
+                }
+            });
+
+            if node_info.running {
+                window.set_status_message(SharedString::from(
+                    format!("Connected to LND v{}", node_info.version),
+                ));
+            } else {
+                window.set_status_message(SharedString::from(
+                    "UI Demo Mode - API connectivity disabled",
+                ));
+            }
         }
-    }
+    }).map_err(|e| {
+        eprintln!("Failed to invoke UI update from event loop: {:?}. This might happen if the UI is already closed.", e);
+    });
 }

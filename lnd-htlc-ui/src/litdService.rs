@@ -57,7 +57,6 @@ pub fn start_litd_service() -> Result<()> {
     let launch_agents_dir = get_launch_agents_dir_path()?;
 
     // Ensure the source plist file exists in the current directory or expected location
-    // For this example, assuming "com.btc.litd.plist" is in the current working directory
     let source_plist_path = PathBuf::from("com.btc.litd.plist");
     if !source_plist_path.exists() {
         return Err(anyhow::anyhow!("Source plist file 'com.btc.litd.plist' not found in current directory."));
@@ -116,24 +115,11 @@ pub fn start_litd_service() -> Result<()> {
 }
 
 pub fn stop_litd_service() -> Result<()> {
-    let plist_path = get_launch_agent_plist_path()?;
-
-    // Attempt to stop the service first
-    let stop_service_output = Command::new("launchctl")
-        .arg("stop")
-        .arg("com.btc.litd") // Use the label
-        .output()
-        .context("Failed to execute launchctl stop command")?;
-    println!("{}", String::from_utf8_lossy(&stop_service_output.stdout));
-    println!("{}", String::from_utf8_lossy(&stop_service_output.stderr));
-    // We don't necessarily fail if stop returns non-zero, it might not have been running.
-
-    // Then unload it
     let unload_output = Command::new("launchctl")
-        .arg("unload")
-        .arg(&plist_path)
+        .arg("remove")
+        .arg("com.btc.litd")
         .output()
-        .context(format!("Failed to unload plist with launchctl from {:?}", plist_path))?;
+        .context("Failed to remove service with launchctl")?;
     println!("{}", String::from_utf8_lossy(&unload_output.stdout));
     println!("{}", String::from_utf8_lossy(&unload_output.stderr));
     if !unload_output.status.success() {

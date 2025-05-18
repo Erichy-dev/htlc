@@ -1,7 +1,11 @@
 use anyhow::{anyhow, Result};
+use std::env;
 use std::process::Command;
 use std::process::Stdio;
 
+use crate::unlockWallet::unlock_wallet_rpc;
+
+#[derive(Clone)]
 pub struct NodeInfo {
     pub running: bool,
     pub version: String,
@@ -11,7 +15,7 @@ pub struct NodeInfo {
     pub identity_pubkey: String,
 }
 
-pub fn node_status() -> NodeInfo {
+pub async fn node_status() -> NodeInfo {
     // Run lncli command and log results before starting UI
     let output = Command::new("lncli")
         .args(["--network", "testnet", "getinfo"])
@@ -59,6 +63,16 @@ pub fn node_status() -> NodeInfo {
             } else {
                 let stderr = String::from_utf8_lossy(&output.stderr);
                 println!("lncli command failed: {}", stderr);
+                if stderr.contains("unlock it") {
+                    let password = "j;e$?ZqfS5WFrk_3K.Zf6ku2w_6T&&N.";
+
+                    tokio::spawn(async move {
+                        match unlock_wallet_rpc(&password).await {
+                            Ok(_) => println!("Successfully unlocked wallet"),
+                            Err(e) => println!("Failed to unlock wallet: {}", e),
+                        }
+                    });
+                }
             }
         }
         Err(e) => println!("Failed to execute lncli: {}", e),

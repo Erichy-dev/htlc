@@ -3,7 +3,7 @@
 <plist version="1.0">
 <dict>
     <key>Label</key>
-    <string>com.example.litd</string>
+    <string>com.btc.litd</string>
     <key>ProgramArguments</key>
     <array>
         <string>/usr/local/bin/litd</string> <!-- Assuming litd is in /usr/local/bin. Adjust if needed. -->
@@ -15,8 +15,8 @@
     <key>KeepAlive</key>
     <true/>
     <key>StandardOutPath</key>
-    <string>/tmp/com.example.litd.stdout.log</string>
+    <string>/tmp/com.btc.litd.stdout.log</string>
     <key>StandardErrorPath</key>
-    <string>/tmp/com.example.litd.stderr.log</string>
+    <string>/tmp/com.btc.litd.stderr.log</string>
 </dict>
 </plist>
