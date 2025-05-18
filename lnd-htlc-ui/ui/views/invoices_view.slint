@@ -116,7 +116,21 @@ export component InvoicesView inherits VerticalBox {
                                         text: "Pay";
                                     }
                                 }
+                            
+                                if !invoice_item.is_own_invoice && invoice_item.state == "ACCEPTED":
+                                    Rectangle {
+                                        padding: 12px;
+                                        background: #0cef54;
+                                        border-radius: 8px;
+                                        width: 65px;
+                                        height: 30px;
 
+                                        Text {
+                                            font-size: 16px;
+                                            
+                                            text: "Settle";
+                                        }
+                                    }
                             if invoice_item.state == "SETTLED":
                                 Rectangle {
                                     padding: 12px;
@@ -129,6 +143,21 @@ export component InvoicesView inherits VerticalBox {
                                         font-size: 16px;
                                         
                                         text: "Settled";
+                                    }
+                                }
+                            
+                            if invoice_item.state == "CANCELED":
+                                Rectangle {
+                                    padding: 12px;
+                                    background: #ef0c0c;
+                                    border-radius: 8px;
+                                    width: 75px;
+                                    height: 30px;
+
+                                    Text {
+                                        font-size: 16px;
+                                        
+                                        text: "Expired";
                                     }
                                 }
                         }

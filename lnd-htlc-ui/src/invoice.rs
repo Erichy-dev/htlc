@@ -10,7 +10,7 @@ pub fn list_invoices(db: &sled::Db) -> Result<Vec<InvoiceDetails>> {
     let output = Command::new("lncli")
         .args(["--network", "testnet", "listinvoices"])
         .output()?;
-    println!("{}", String::from_utf8_lossy(&output.stdout));
+    // println!("{}", String::from_utf8_lossy(&output.stdout));
 
     match serde_json::from_str::<ListInvoicesResponse>(&String::from_utf8_lossy(&output.stdout)) {
         Ok(parsed_response) => {
