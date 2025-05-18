@@ -422,9 +422,19 @@ async fn main() -> Result<()> {
     let copy_window_weak_clone = window_weak.clone();
     window.on_copy_to_clipboard(move |payment_request| {
         if let Some(window) = copy_window_weak_clone.upgrade() {
-            window.set_status_message(SharedString::from(format!(
-                "Copied payment request to clipboard",
-            )));
+            match invoice::copy_payment_request(payment_request.to_string()) {
+                Ok(_) => {
+                    window.set_status_message(SharedString::from(format!(
+                        "Copied payment request to clipboard",
+                    )));
+                }
+                Err(e) => {
+                    window.set_status_message(SharedString::from(format!(
+                        "Error copying payment request to clipboard: {}",
+                        e
+                    )));
+                }
+            }
         }
     });
 

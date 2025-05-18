@@ -170,8 +170,24 @@ pub fn settle_invoice(preimage_h: String, db: &sled::Db) -> Result<()> {
 }
 
 pub fn copy_payment_request(payment_request: String) -> Result<()> {
-    let mut ctx = ClipboardContext::new().map_err(|e| anyhow::anyhow!("Failed to initialize clipboard: {}", e))?;
-    ctx.set_contents(payment_request.clone()).map_err(|e| anyhow::anyhow!("Failed to copy to clipboard: {}", e))?;
-    println!("Copied to clipboard: {}", payment_request);
-    Ok(())
+    let mut ctx = match ClipboardContext::new() {
+        Ok(ctx) => ctx,
+        Err(e) => {
+            let err_msg = format!("Failed to initialize clipboard: {}", e);
+            println!("{}", err_msg);
+            return Err(anyhow!(err_msg));
+        }
+    };
+
+    match ctx.set_contents(payment_request.clone()) {
+        Ok(_) => {
+            println!("Copied to clipboard: {}", payment_request);
+            Ok(())
+        },
+        Err(e) => {
+            let err_msg = format!("Failed to copy to clipboard: {}", e);
+            println!("{}", err_msg); 
+            Err(anyhow!(err_msg))
+        }
+    }
 }

@@ -190,12 +190,21 @@ export component InvoicesView inherits VerticalBox {
                             spacing: 10px;
 
                             Text {
-                                text: "Payment Request: " + invoice_item.payment_request;
+                                text: "Payment Request:";
+                                font-size: 12px;
+                                color: #e4e0e0;
+                                opacity: 0.7;
+                            }
+
+                            Text {
+                                text: invoice_item.payment_request;
                                 font-size: 5px;
                                 color: #e4e0e0;
                                 opacity: 0.7;
-                                width: 100px;
+                                width: 200px;
+                                height: 20px;
                                 wrap: TextWrap.word-wrap;
+                                overflow: TextOverflow.clip;
                             }
 
                             TouchArea {
