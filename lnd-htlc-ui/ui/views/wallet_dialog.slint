@@ -1,14 +1,10 @@
 import { Button, LineEdit, VerticalBox } from "std-widgets.slint";
 
 export component WalletUnlockDialog inherits Rectangle {
-    in property <bool> show: true;
     callback unlock-wallet(string); // password
-    callback close();
     
     width: 400px;
     height: 240px;
-    
-    visible: show;
     
     Text {
         text: "Wallet Unlock Required";
@@ -17,16 +13,7 @@ export component WalletUnlockDialog inherits Rectangle {
         horizontal-alignment: center;
     }
     
-    if (!show): Rectangle {
-        Text {
-            text: "Wallet already unlocked";
-            color: #20c997;
-            font-size: 14px;
-            horizontal-alignment: center;
-        }
-    }
-    
-    if (show): VerticalLayout {
+    VerticalLayout {
         padding: 16px;
         spacing: 16px;
         
@@ -46,12 +33,9 @@ export component WalletUnlockDialog inherits Rectangle {
             spacing: 12px;
             
             Button {
-                text: "Cancel";
-                clicked => { root.close(); }
-            }
-            
-            Button {
                 text: "Unlock";
+                width: 100px;
+                height: 34px;
                 primary: true;
                 clicked => { root.unlock-wallet(password.text); }
             }

@@ -10,6 +10,7 @@ export component Sidebar inherits Rectangle {
     
     // Callbacks to parent - UI navigation only
     callback home();
+    callback wallet-view();
     callback manage-channels();
     callback create-channel();
     callback create-custom-invoice();
@@ -76,6 +77,24 @@ export component Sidebar inherits Rectangle {
 
                 clicked => { root.home(); }
             }
+        }
+
+        if (root.wallet-needs-unlock):
+        TouchArea {
+            Rectangle {
+                height: 34px;
+                width: 100%;
+                background: #333333;
+                border-radius: 4px;
+
+                Text {
+                    text: "Unlock Wallet";
+                    color: white;
+                    horizontal-alignment: center;
+                    vertical-alignment: center;
+                }
+            }
+            clicked => { root.wallet-view(); }
         }
         
         VerticalLayout {

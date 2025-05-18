@@ -64,14 +64,7 @@ pub async fn node_status() -> NodeInfo {
                 let stderr = String::from_utf8_lossy(&output.stderr);
                 println!("lncli command failed: {}", stderr);
                 if stderr.contains("unlock it") {
-                    let password = "j;e$?ZqfS5WFrk_3K.Zf6ku2w_6T&&N.";
-
-                    tokio::spawn(async move {
-                        match unlock_wallet_rpc(&password).await {
-                            Ok(_) => println!("Successfully unlocked wallet"),
-                            Err(e) => println!("Failed to unlock wallet: {}", e),
-                        }
-                    });
+                    println!("Wallet is locked");
                 }
             }
         }

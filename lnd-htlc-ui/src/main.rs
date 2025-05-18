@@ -11,6 +11,7 @@ mod windows_service;
 use anyhow::Result;
 use serde::{Deserialize, Serialize};
 use slint::{Model, ModelRc, SharedString, VecModel};
+use unlock_wallet::unlock_wallet_rpc;
 use std::rc::Rc;
 use std::sync::{Arc, Mutex};
 use tokio::sync::mpsc;
@@ -89,13 +90,54 @@ async fn main() -> Result<()> {
             let node_db_clone = db.clone();
             node_db_clone.insert(b"identity_pubkey", initial_node_info.identity_pubkey.as_bytes());
 
-            update_ui_with_node_info(&window_weak, initial_node_info);
+            update_ui_with_node_info(&window_weak, initial_node_info.clone());
+            if !initial_node_info.running {
+                window.set_wallet_needs_unlock(true);
+            }
             
             let window_weak_for_updates = window_weak.clone();
             tokio::spawn(async move {
                 while let Some(info) = rx_node_status.recv().await {
                     update_ui_with_node_info(&window_weak_for_updates, info);
                 }
+            });
+
+            let wallet_window_weak = window_weak.clone();
+            window.on_unlock_wallet(move |password: SharedString| {
+                println!("Unlocking wallet with password: {}", password);
+                let password_str = password.to_string();
+                let task_arc_weak_clone = wallet_window_weak.clone(); // Clone Arc for the tokio task
+
+                tokio::spawn(async move { // task_arc_weak_clone is moved into this async block
+                    match unlock_wallet_rpc(&password_str).await {
+                        Ok(_) => {
+                            println!("Wallet unlocked successfully");
+                            // Clone the Arc again for the invoke_from_event_loop closure
+                            let invoke_arc_weak_clone_ok = task_arc_weak_clone.clone();
+                            let _ = slint::invoke_from_event_loop(move || { // invoke_arc_weak_clone_ok moved here
+                                if let Some(window_on_event_loop) = invoke_arc_weak_clone_ok.upgrade() {
+                                    window_on_event_loop.set_wallet_needs_unlock(false);
+                                    window_on_event_loop.set_active_page(-1i32);
+                                } else {
+                                    println!("Could not update UI after wallet unlock: window closed.");
+                                }
+                            });
+                        }
+                        Err(e) => {
+                            println!("Failed to unlock wallet: {}", e);
+                            let error_message = format!("Failed to unlock wallet: {}", e);
+                            // Clone the Arc again for this invoke_from_event_loop closure
+                            let invoke_arc_weak_clone_err = task_arc_weak_clone.clone();
+                            let _ = slint::invoke_from_event_loop(move || { // invoke_arc_weak_clone_err and error_message moved here
+                                if let Some(window_on_event_loop) = invoke_arc_weak_clone_err.upgrade() {
+                                    window_on_event_loop.set_status_message(SharedString::from(error_message));
+                                } else {
+                                    println!("Could not update status after wallet unlock failure: window closed.");
+                                }
+                            });
+                        }
+                    }
+                });
             });
 
             // Handle Manage Channels click

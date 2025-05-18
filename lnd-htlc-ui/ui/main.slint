@@ -1,14 +1,10 @@
-import { Button, LineEdit, ScrollView, VerticalBox } from "std-widgets.slint";
-import { Invoice, InvoiceItem } from "components/invoice.slint";
-import { WalletUnlockDialog } from "components/wallet_dialog.slint";
-import { ActionButton } from "components/action_button.slint";
+import { WalletUnlockDialog } from "views/wallet_dialog.slint";
 import { AppLayout } from "components/app_layout.slint";
 import { ChannelsView, Channel, PendingChannel } from "views/channels_view.slint";
 import { CreateCustomInvoiceView } from "views/create_invoice_view.slint";
 import { CreateStandardInvoiceView } from "views/create_standard_invoice.slint";
 import { WelcomeView } from "views/welcome_view.slint";
 import { CreateChannelView } from "views/create_channel_view.slint";
-import { Sidebar } from "components/sidebar.slint";
 import { InvoicesView, InvoiceDetails } from "views/invoices_view.slint";
 
 export enum ActivePage {
@@ -47,7 +43,8 @@ export component MainWindow inherits Window {
     callback manage-invoices(); // New callback for listing invoices
     callback settle-custom-invoice(string); // preimage_x
     callback copy-to-clipboard(string); // payment_request
-    
+    callback unlock-wallet(string); // password
+
     // Action page tracking
     in-out property <int> active-page: -1; // 0 = manage channels, 1 = create channel, 2 = generate x/h, 3 = custom invoice, 4 = pay invoice, 5 = claim invoice, 6 = standard invoice
     
@@ -94,6 +91,7 @@ export component MainWindow inherits Window {
         manage-invoices => { root.manage-invoices(); }
         create-custom-invoice => { root.active-page = 3; }
         create-standard-invoice => { root.active-page = 4; }
+        wallet-view => { root.active-page = 5; }
 
         // Main content area based on active page
         if (active-page == -1): WelcomeView {
@@ -139,6 +137,12 @@ export component MainWindow inherits Window {
                 root.create-standard-invoice(amount, memo);
             }
             payment-address <=> root.payment_address;
+        }
+
+        if (active-page == 5): WalletUnlockDialog {
+            unlock-wallet(password) => {
+                root.unlock-wallet(password);
+            }
         }
     }
 } 

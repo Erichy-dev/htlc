@@ -17,6 +17,7 @@ export component AppLayout inherits Rectangle {
     
     // UI navigation callbacks only
     callback home();
+    callback wallet-view();
     callback manage-channels();
     callback create-channel();
     callback manage-invoices();
@@ -41,6 +42,7 @@ export component AppLayout inherits Rectangle {
                 litd-started-by-app: root.litd-started-by-app;
                 status-checking: root.status-checking;
                 
+                wallet-view => { root.wallet-view(); }
                 home => { root.home(); }
                 manage-channels => { root.manage-channels(); }
                 create-channel => { root.create-channel(); }
