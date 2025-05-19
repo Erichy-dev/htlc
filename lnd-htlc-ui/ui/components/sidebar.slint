@@ -8,7 +8,7 @@ export component Sidebar inherits Rectangle {
     in property <bool> litd-started-by-app;
     in property <bool> status-checking: false;
     in property <bool> is-mainnet: false;
-    
+    in property <string> wallet-balance;
     // Callbacks to parent - UI navigation only
     callback home();
     callback wallet-view();
@@ -72,6 +72,16 @@ export component Sidebar inherits Rectangle {
                         Text {
                             text: "Sync: " + root.node-sync-status;
                             color: #bbbbbb;
+                            font-size: 13px;
+                        }
+                    }
+
+                    HorizontalLayout {
+                        spacing: 8px;
+
+                        Text {
+                            text: "Wallet Balance: " + root.wallet-balance;
+                            color: #065e21;
                             font-size: 13px;
                         }
                     }

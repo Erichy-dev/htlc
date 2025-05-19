@@ -31,6 +31,7 @@ export component MainWindow inherits Window {
     in property <[Channel]> channels: [];
     in property <[PendingChannel]> pending_channels: [];
     in property <bool> is-mainnet: false;
+    in property <string> wallet-balance: "";
     
     // Callbacks
     callback manage-channels();
@@ -81,6 +82,8 @@ export component MainWindow inherits Window {
         pending-channels: root.pending_channels;
         active-page <=> root.active-page;
         is-mainnet: root.is-mainnet;
+        wallet-balance <=> root.wallet-balance;
+
         home => { root.active-page = -1; }
         manage-channels => { root.manage-channels(); }
         create-channel => { 

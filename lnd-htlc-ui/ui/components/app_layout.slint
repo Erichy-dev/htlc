@@ -15,7 +15,7 @@ export component AppLayout inherits Rectangle {
     in property <[PendingChannel]> pending-channels;
     in-out property <int> active-page;
     in property <bool> is-mainnet: false;
-    
+    in property <string> wallet-balance;
     // UI navigation callbacks only
     callback home();
     callback wallet-view();
@@ -44,6 +44,7 @@ export component AppLayout inherits Rectangle {
                 litd-started-by-app: root.litd-started-by-app;
                 status-checking: root.status-checking;
                 is-mainnet: root.is-mainnet;
+                wallet-balance: root.wallet-balance;
                 
                 wallet-view => { root.wallet-view(); }
                 home => { root.home(); }

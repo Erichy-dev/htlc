@@ -2,8 +2,10 @@ use anyhow::{anyhow, Result};
 use std::env;
 use std::process::Command;
 use std::process::Stdio;
+use std::sync::Arc;
 
 use crate::unlock_wallet::unlock_wallet_rpc;
+use crate::MainWindow;
 
 #[derive(Clone)]
 pub struct NodeInfo {
@@ -15,7 +17,7 @@ pub struct NodeInfo {
     pub identity_pubkey: String,
 }
 
-pub async fn node_status(network: &str) -> NodeInfo {
+pub async fn node_status(network: &str, window_weak: &Arc<slint::Weak<MainWindow>>) -> NodeInfo {
     // Run lncli command and log results before starting UI
     let output = if network == "testnet" {
         Command::new("/usr/local/bin/lncli")
@@ -34,6 +36,8 @@ pub async fn node_status(network: &str) -> NodeInfo {
     let mut block_height = 0;
     let mut network = String::from("testnet");
     let mut identity_pubkey = String::from("unknown");
+
+    let window_weak_clone = window_weak.clone();
 
     match output {
         Ok(output) => {
@@ -66,11 +70,21 @@ pub async fn node_status(network: &str) -> NodeInfo {
                 if let Some(i) = stdout.find("\"identity_pubkey\":") {
                     identity_pubkey = stdout[i + 21..i + 87].to_string();
                 }
+                let _ = slint::invoke_from_event_loop(move || {
+                    if let Some(window) = window_weak_clone.upgrade() {
+                        window.set_wallet_needs_unlock(false);
+                    }
+                });
             } else {
                 let stderr = String::from_utf8_lossy(&output.stderr);
                 println!("lncli command failed: {}", stderr);
                 if stderr.contains("unlock it") {
                     println!("Wallet is locked");
+                    let _ = slint::invoke_from_event_loop(move || {
+                        if let Some(window) = window_weak_clone.upgrade() {
+                            window.set_wallet_needs_unlock(true);
+                        }
+                    });
                 }
             }
         }

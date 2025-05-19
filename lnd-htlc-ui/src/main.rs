@@ -76,15 +76,18 @@ async fn main() -> Result<()> {
         Ok(_) => {
             // Create channel for node status updates
             let (tx_node_status, mut rx_node_status) = mpsc::channel(5);
+            let window = MainWindow::new().map_err(|e| anyhow::anyhow!("Failed to create main window: {}", e))?;
+            let window_weak = Arc::new(window.as_weak());
 
             let node_db = db.clone();
+            let node_update_window_clone = window_weak.clone();
             // Spawn task to check node status in intervals
             tokio::spawn(async move {
                 let mut interval = interval(Duration::from_secs(5));
                 loop {
                     interval.tick().await;
                     let node_network = litd_service::get_network(&node_db).await.unwrap_or_else(|_| "testnet".to_string());
-                    let info = node_status(&node_network).await;
+                    let info = node_status(&node_network, &node_update_window_clone).await;
                     if let Err(_) = tx_node_status.send(info).await {
                         break; 
                     }
@@ -92,9 +95,8 @@ async fn main() -> Result<()> {
             });
             
             let initial_network_str_clone = initial_network_str.clone();
-            let initial_node_info = node_status(&initial_network_str_clone).await;
-            let window = MainWindow::new().map_err(|e| anyhow::anyhow!("Failed to create main window: {}", e))?;
-            let window_weak = Arc::new(window.as_weak());
+            let initial_node_window_clone = window_weak.clone();
+            let initial_node_info = node_status(&initial_network_str_clone, &initial_node_window_clone).await;
 
             let node_db_clone = db.clone();
             update_ui_with_node_info(&window_weak, initial_node_info.clone(), &node_db_clone);
@@ -584,7 +586,6 @@ fn update_ui_with_node_info(window_weak: &Arc<slint::Weak<MainWindow>>, node_inf
     let window_weak_clone = window_weak.clone();
     let db_clone = db.clone();
 
-    // node_info is now owned
     let _ = slint::invoke_from_event_loop(move || {
         if let Some(window) = window_weak_clone.upgrade() {
             window.set_node_is_running(node_info.running);
