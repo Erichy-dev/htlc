@@ -5,6 +5,7 @@ export component WelcomeView inherits Rectangle {
 
     in property <bool> node-is-running;
     in property <string> node-sync-status;
+    in property <int> wallet-balance;
 
     VerticalLayout {
         spacing: 16px;
@@ -28,12 +29,16 @@ export component WelcomeView inherits Rectangle {
         
         Rectangle { height: 20px; }
 
-        Image {
-            source: @image-url("images/lightning-logo.png");
-            width: 100px;
-            height: 100px;
-            image-fit: contain;
-            horizontal-alignment: center;
+        HorizontalLayout {
+            alignment: center;
+            
+            Image {
+                source: @image-url("images/lightning-logo.png");
+                width: 100px;
+                height: 100px;
+                image-fit: contain;
+                horizontal-alignment: center;
+            }
         }
 
         Rectangle { height: 10px; }
@@ -43,6 +48,18 @@ export component WelcomeView inherits Rectangle {
             font-size: 16px;
             color: #bbbbbb;
             horizontal-alignment: center;
+        }
+
+        HorizontalLayout {
+            spacing: 8px;
+            alignment: center;
+            padding-top: 5px;
+
+            Text {
+                text: "Wallet Bal: " + root.wallet-balance + " sats";
+                color: #00a532;
+                font-size: 13px;
+            }
         }
     }
 } 
