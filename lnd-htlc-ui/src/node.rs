@@ -18,11 +18,11 @@ pub struct NodeInfo {
 pub async fn node_status(network: &str) -> NodeInfo {
     // Run lncli command and log results before starting UI
     let output = if network == "testnet" {
-        Command::new("lncli")
+        Command::new("/usr/local/bin/lncli")
             .args(["--network", "testnet", "getinfo"])
             .output()
     } else {
-        Command::new("lncli")
+        Command::new("/usr/local/bin/lncli")
             .args(["getinfo"])
             .output()
     };

@@ -1,6 +1,4 @@
-use std::process::Command;
-use std::path::PathBuf;
-use std::env;
+use std::{path::PathBuf, process::Command};
 use anyhow::{Result, Context};
 
 use crate::{mac_service::start_mac_service, windows_service::start_windows_service};

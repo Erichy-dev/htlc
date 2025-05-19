@@ -40,11 +40,11 @@ pub fn connect_to_peer(network: &str, pubkey: &str, host: &str, port: u16) -> Re
     println!("Attempting to connect to peer: {}", addr);
     
     let output = if network == "mainnet" {
-        Command::new("lncli")
+        Command::new("/usr/local/bin/lncli")
             .args(["connect", &addr])
             .output()?
     } else {
-        Command::new("lncli")
+        Command::new("/usr/local/bin/lncli")
             .args(["--network", "testnet", "connect", &addr])
             .output()?
     };
@@ -62,11 +62,11 @@ pub fn connect_to_peer(network: &str, pubkey: &str, host: &str, port: u16) -> Re
 
 pub fn list_active_channels(network: &str) -> Result<Vec<ActiveChannelInfo>> {
     let output = if network == "mainnet" {
-        Command::new("lncli")
+        Command::new("/usr/local/bin/lncli")
             .args(["listchannels"])
             .output()?
     } else {
-        Command::new("lncli")
+        Command::new("/usr/local/bin/lncli")
             .args(["--network", "testnet", "listchannels"])
             .output()?
     };
@@ -107,11 +107,11 @@ pub fn list_active_channels(network: &str) -> Result<Vec<ActiveChannelInfo>> {
 
 pub fn list_pending_channels(network: &str) -> Result<Vec<PendingChannelInfo>> {
     let output = if network == "mainnet" {
-        Command::new("lncli")
+        Command::new("/usr/local/bin/lncli")
             .args(["pendingchannels"])
             .output()?
     } else {
-        Command::new("lncli")
+        Command::new("/usr/local/bin/lncli")
             .args(["--network", "testnet", "pendingchannels"])
             .output()?
     };
@@ -165,11 +165,11 @@ pub fn list_peers(network: &str) -> Result<Vec<String>> {
     println!("Listing connected peers...");
     
     let output = if network == "mainnet" {
-        Command::new("lncli")
+        Command::new("/usr/local/bin/lncli")
             .args(["listpeers"])
             .output()?
     } else {
-        Command::new("lncli")
+        Command::new("/usr/local/bin/lncli")
             .args(["--network", "testnet", "listpeers"])
             .output()?
     };
@@ -220,7 +220,7 @@ pub fn open_channel(network: &str, pub_key: &str, amount: u32) -> Result<String>
     println!("Opening channel with {} for {} sats", pub_key, amount);
     
     let output = if network == "mainnet" {
-        Command::new("lncli")
+        Command::new("/usr/local/bin/lncli")
             .args([
                 "openchannel",
                 pub_key,
@@ -228,7 +228,7 @@ pub fn open_channel(network: &str, pub_key: &str, amount: u32) -> Result<String>
             ])
             .output()?
     } else {
-        Command::new("lncli")
+        Command::new("/usr/local/bin/lncli")
             .args([
                 "--network", "testnet",
                 "openchannel",

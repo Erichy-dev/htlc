@@ -8,7 +8,7 @@ use copypasta::{ClipboardContext, ClipboardProvider};
 use crate::{InvoiceData, InvoiceDetails, ListInvoicesResponse};
 
 pub fn list_invoices(db: &sled::Db) -> Result<Vec<InvoiceDetails>> {
-    let output = Command::new("lncli")
+    let output = Command::new("/usr/local/bin/lncli")
         .args(["--network", "testnet", "listinvoices"])
         .output()?;
     // println!("{}", String::from_utf8_lossy(&output.stdout));
@@ -65,8 +65,15 @@ pub fn list_invoices(db: &sled::Db) -> Result<Vec<InvoiceDetails>> {
     }
 } 
 
-pub fn create_invoice(preimage_x: String, preimage_h: String, amount: String, memo: String, db: &sled::Db) -> Result<String> {
-    let output = Command::new("lncli")
+pub struct InvoiceOutput {
+    pub payment_addr: String,
+    pub payment_request: String,
+    pub destination_pubkey: String,
+    pub identity_pubkey: String,
+}
+
+pub fn create_invoice(preimage_x: String, preimage_h: String, amount: String, memo: String, db: &sled::Db) -> Result<InvoiceOutput> {
+    let output = Command::new("/usr/local/bin/lncli")
         .args(["--network", "testnet", "addholdinvoice", &preimage_h, "--amt", &amount, "--memo", &memo])
         .output()?;
     println!("{}", String::from_utf8_lossy(&output.stdout));
@@ -75,7 +82,7 @@ pub fn create_invoice(preimage_x: String, preimage_h: String, amount: String, me
         Ok(json) => {
             if let Some(payment_addr) = json.get("payment_addr").and_then(|v| v.as_str()) {
                 if let Some(payment_request) = json.get("payment_request").and_then(|v| v.as_str()) {
-                    let invoice_output = Command::new("lncli")
+                    let invoice_output = Command::new("/usr/local/bin/lncli")
                         .args(["--network", "testnet", "decodepayreq", payment_request])
                         .output()?;
 
@@ -103,7 +110,12 @@ pub fn create_invoice(preimage_x: String, preimage_h: String, amount: String, me
                             let serialized_invoice_data = bincode::serialize(&invoice_data_to_save)?;
                             db.insert(preimage_h.as_bytes(), serialized_invoice_data)?;
                             
-                            Ok(payment_addr.to_string())
+                            Ok(InvoiceOutput {
+                                payment_addr: payment_addr.to_string(),
+                                payment_request: payment_request.to_string(),
+                                destination_pubkey: destination_pubkey.to_string(),
+                                identity_pubkey: identity_pubkey_str.to_string(),
+                            })
                         }
                         Err(e) => {
                             println!("Failed to parse JSON response: {}", e);
@@ -155,7 +167,7 @@ pub fn settle_invoice(preimage_h: String, db: &sled::Db) -> Result<()> {
 
     println!("Attempting to settle invoice with r_hash: {}, using resolved preimage_x: {}", preimage_h, preimage_x);
 
-    let output = Command::new("lncli")
+    let output = Command::new("/usr/local/bin/lncli")
         .args(["--network", "testnet", "settleinvoice", &preimage_x])
         .output()?;
 
@@ -193,7 +205,7 @@ pub fn copy_payment_request(payment_request: String) -> Result<()> {
 }
 
 pub fn create_standard_invoice(amount: String, memo: String, db: &sled::Db) -> Result<String> {
-    let output = Command::new("lncli")
+    let output = Command::new("/usr/local/bin/lncli")
         .args(["--network", "testnet", "addinvoice", "--amt", &amount, "--memo", &memo])
         .output()?;
 
@@ -203,7 +215,7 @@ pub fn create_standard_invoice(amount: String, memo: String, db: &sled::Db) -> R
             if let Some(payment_addr) = json.get("payment_addr").and_then(|v| v.as_str()) {
                 if let Some(r_hash) = json.get("r_hash").and_then(|v| v.as_str()) {
                     if let Some(payment_request) = json.get("payment_request").and_then(|v| v.as_str()) {
-                        let invoice_output = Command::new("lncli")
+                        let invoice_output = Command::new("/usr/local/bin/lncli")
                             .args(["--network", "testnet", "decodepayreq", payment_request])
                             .output()?;
     

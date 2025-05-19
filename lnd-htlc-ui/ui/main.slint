@@ -32,6 +32,9 @@ export component MainWindow inherits Window {
     in property <[PendingChannel]> pending_channels: [];
     in property <bool> is-mainnet: false;
     
+    in-out property <string> identity-pubkey: "";
+    in-out property <string> destination-pubkey: "";
+    
     // Callbacks
     callback manage-channels();
     callback request-preimage-generation();
@@ -132,6 +135,8 @@ export component MainWindow inherits Window {
             generated-preimage-x <=> root.generated_preimage_x;
             generated-preimage-h <=> root.generated_preimage_h;
             payment-address <=> root.payment_address;
+            identity-pubkey <=> root.identity_pubkey;
+            destination-pubkey <=> root.destination_pubkey;
         }
         
         if (active-page == 4): CreateStandardInvoiceView {

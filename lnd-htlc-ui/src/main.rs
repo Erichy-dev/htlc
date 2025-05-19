@@ -9,9 +9,11 @@ mod mac_service;
 mod windows_service;
 
 use anyhow::Result;
+use directories::ProjectDirs;
 use serde::{Deserialize, Serialize};
 use slint::{Model, ModelRc, SharedString, VecModel};
 use unlock_wallet::unlock_wallet_rpc;
+use std::path::PathBuf;
 use std::rc::Rc;
 use std::sync::{Arc, Mutex};
 use tokio::sync::mpsc;
@@ -54,13 +56,12 @@ pub struct InvoiceData {
 
 #[tokio::main]
 async fn main() -> Result<()> {
+    let app_data_dir = get_app_data_dir().unwrap();
     // Initialize sled database
-    let db = match sled::open("invoice_data_db") {
+    let db = match sled::open(app_data_dir.join("invoice_data_db")) {
         Ok(db) => db,
         Err(e) => {
             eprintln!("CRITICAL: Failed to open sled database 'invoice_data_db': {}. Please check permissions and disk space.", e);
-            // For a real application, you might want to inform the user more gracefully or attempt a fallback.
-            // For now, we'll panic as persistence is key to the request.
             panic!("Failed to open database: {}", e);
         }
     };
@@ -450,9 +451,11 @@ async fn main() -> Result<()> {
                                 "Created invoice with preimage: {}, amount: {}, memo: {}",
                                 preimage_x, amount, memo
                             )));
-                            window.set_payment_address(SharedString::from(output));
+                            window.set_payment_address(SharedString::from(output.payment_addr));
                             window.set_generated_preimage_h(SharedString::from(""));
                             window.set_generated_preimage_x(SharedString::from(""));
+                            window.set_identity_pubkey(SharedString::from(output.identity_pubkey));
+                            window.set_destination_pubkey(SharedString::from(output.destination_pubkey));
                         }
                         Err(e) => {
                             window.set_status_message(SharedString::from(format!(
@@ -606,15 +609,23 @@ fn update_ui_with_node_info(window_weak: &Arc<slint::Weak<MainWindow>>, node_inf
 
             if node_info.running {
                 window.set_status_message(SharedString::from(
-                    format!("Connected to LND v{}", node_info.version),
+                    format!("Connected to LND {}", node_info.identity_pubkey),
                 ));
             } else {
                 window.set_status_message(SharedString::from(
-                    "UI Demo Mode - API connectivity disabled",
+                    "Node is not running",
                 ));
             }
         }
     }).map_err(|e| {
         eprintln!("Failed to invoke UI update from event loop: {:?}. This might happen if the UI is already closed.", e);
     });
+}
+
+pub fn get_app_data_dir() -> Option<PathBuf> {
+    if let Some(proj_dirs) = ProjectDirs::from("com", "btc", "lnd-htlc-ui") {
+        let data_dir = proj_dirs.data_dir();
+        return Some(data_dir.to_path_buf());
+    }
+    None
 }

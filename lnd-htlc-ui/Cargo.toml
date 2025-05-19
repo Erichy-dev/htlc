@@ -26,6 +26,7 @@ copypasta = "0.10.1"
 reqwest = "0.12.15"
 base64 = "0.22.1"
 dotenv = "0.15"
+directories = "6.0.0"
 
 [build-dependencies]
 slint-build = "1.3"
