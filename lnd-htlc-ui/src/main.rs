@@ -453,8 +453,6 @@ async fn main() -> Result<()> {
                             window.set_payment_address(SharedString::from(output.payment_addr));
                             window.set_generated_preimage_h(SharedString::from(""));
                             window.set_generated_preimage_x(SharedString::from(""));
-                            window.set_identity_pubkey(SharedString::from(output.identity_pubkey));
-                            window.set_destination_pubkey(SharedString::from(output.destination_pubkey));
                         }
                         Err(e) => {
                             window.set_status_message(SharedString::from(format!(

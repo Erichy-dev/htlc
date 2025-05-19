@@ -7,8 +7,6 @@ export component CreateCustomInvoiceView {
     in-out property <string> generated-preimage-x: "";
     in-out property <string> generated-preimage-h: "";
     in-out property <string> payment-address: "";
-    in-out property <string> identity-pubkey: "";
-    in-out property <string> destination-pubkey: "";
     
     VerticalLayout {
         spacing: 16px;
@@ -147,20 +145,6 @@ export component CreateCustomInvoiceView {
                     horizontal-alignment: left;
                     vertical-alignment: center;
                     padding: 8px;
-                }
-
-                if root.identity_pubkey != "": Text {
-                    text: "Identity Pubkey: \{root.identity_pubkey}";
-                    color: #5294e2;
-                    font-weight: 500;
-                    font-size: 14px;
-                }
-
-                if root.destination_pubkey != "": Text {
-                    text: "Destination Pubkey: \{root.destination_pubkey}";
-                    color: #5294e2;
-                    font-weight: 500;
-                    font-size: 14px;
                 }
             }
         }
