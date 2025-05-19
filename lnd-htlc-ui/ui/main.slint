@@ -31,7 +31,7 @@ export component MainWindow inherits Window {
     in property <[Channel]> channels: [];
     in property <[PendingChannel]> pending_channels: [];
     in property <bool> is-mainnet: false;
-    in property <string> wallet-balance: "";
+    in property <int> wallet-balance: 0;
     
     // Callbacks
     callback manage-channels();

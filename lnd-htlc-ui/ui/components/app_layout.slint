@@ -15,7 +15,7 @@ export component AppLayout inherits Rectangle {
     in property <[PendingChannel]> pending-channels;
     in-out property <int> active-page;
     in property <bool> is-mainnet: false;
-    in property <string> wallet-balance;
+    in property <int> wallet-balance: 0;
     // UI navigation callbacks only
     callback home();
     callback wallet-view();

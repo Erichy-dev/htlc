@@ -8,7 +8,7 @@ export component Sidebar inherits Rectangle {
     in property <bool> litd-started-by-app;
     in property <bool> status-checking: false;
     in property <bool> is-mainnet: false;
-    in property <string> wallet-balance;
+    in property <int> wallet-balance: 0;
     // Callbacks to parent - UI navigation only
     callback home();
     callback wallet-view();
@@ -78,10 +78,12 @@ export component Sidebar inherits Rectangle {
 
                     HorizontalLayout {
                         spacing: 8px;
+                        alignment: center;
+                        padding-top: 5px;
 
                         Text {
-                            text: "Wallet Balance: " + root.wallet-balance;
-                            color: #065e21;
+                            text: "Wallet Bal: " + root.wallet-balance + " sats";
+                            color: #00a532;
                             font-size: 13px;
                         }
                     }
