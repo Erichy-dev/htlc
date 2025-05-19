@@ -102,6 +102,7 @@ export component MainWindow inherits Window {
         if (active-page == -1): WelcomeView {
             node-is-running: root.node-is-running;
             node-sync-status: root.node-sync-status;
+            wallet-balance: root.wallet-balance;
         }
         
         if (active-page == 0): ChannelsView {
