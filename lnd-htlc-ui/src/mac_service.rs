@@ -19,6 +19,16 @@ fn get_launch_agents_dir_path() -> Result<PathBuf> {
     Ok(path)
 }
 
+fn get_resource_path(filename: &str) -> PathBuf {
+    // Get the path to the executable
+    let exe_path = env::current_exe().expect("Failed to get current exe path");
+    // Go up to the .app/Contents/
+    let contents_dir = exe_path.parent().and_then(|p| p.parent()).expect("Failed to get Contents dir");
+    // Go to Contents/Resources/
+    let resources_dir = contents_dir.join("Resources");
+    resources_dir.join(filename)
+}
+
 pub fn start_mac_service(network: &str) -> Result<()> {
     let service_name = format!("com.btc-{}.litd", network);
     // Check if the service is already running
@@ -44,10 +54,10 @@ pub fn start_mac_service(network: &str) -> Result<()> {
     let plist_path = get_launch_agent_plist_path(network)?;
     let launch_agents_dir = get_launch_agents_dir_path()?;
 
-    // Ensure the source plist file exists in the current directory or expected location
-    let source_plist_path = PathBuf::from(format!("com.btc-{}.litd.plist", network));
+    // Ensure the source plist file exists in the Resources directory of the app bundle
+    let source_plist_path = get_resource_path(&format!("com.btc-{}.litd.plist", network));
     if !source_plist_path.exists() {
-        return Err(anyhow::anyhow!("Source plist file '{}' not found in current directory.", source_plist_path.display()));
+        return Err(anyhow::anyhow!("Source plist file '{}' not found in Resources directory.", source_plist_path.display()));
     }
 
     let cp_output = Command::new("cp")
