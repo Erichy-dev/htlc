@@ -51,6 +51,7 @@ export component MainWindow inherits Window {
     in-out property <int> active-page: -1; // 0 = manage channels, 1 = create channel, 2 = generate x/h, 3 = custom invoice, 4 = pay invoice, 5 = claim invoice, 6 = standard invoice
     
     in property <bool> has-error: false;
+    in property <string> standard-payment-address: "";
     
     // Local storage for preimage and hash
     property <string> current-preimage;
@@ -142,7 +143,7 @@ export component MainWindow inherits Window {
             create-clicked(amount, memo) => {
                 root.create-standard-invoice(amount, memo);
             }
-            payment-address <=> root.payment_address;
+            standard-payment-address: root.standard_payment_address;
         }
 
         if (active-page == 5): WalletUnlockDialog {

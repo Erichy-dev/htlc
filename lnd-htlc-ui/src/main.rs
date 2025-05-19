@@ -560,7 +560,7 @@ async fn main() -> Result<()> {
                                 "Created standard invoice with memo: {}, amount: {}",
                                 memo, amount
                             )));
-                            window.set_payment_address(SharedString::from(output));
+                            window.set_standard_payment_address(SharedString::from(output));
                         }
                         Err(e) => {
                             window.set_status_message(SharedString::from(format!(

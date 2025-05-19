@@ -3,7 +3,7 @@ import { LineEdit } from "std-widgets.slint";
 // 1. Create Standard Invoice View
 export component CreateStandardInvoiceView {
     callback create-clicked(string, string); // amount, memo
-    in-out property <string> payment-address: "";
+    in-out property <string> standard-payment-address: "";
     
     VerticalLayout {
         spacing: 16px;
@@ -92,8 +92,8 @@ export component CreateStandardInvoiceView {
                     height: 8px;
                 }
 
-                if root.payment_address != "": Text {
-                    text: "Payment Address: \{root.payment_address}";
+                if root.standard-payment-address != "": Text {
+                    text: "Payment Address: \{root.standard-payment-address}";
                     color: #5294e2;
                     font-weight: 500;
                     font-size: 14px;
