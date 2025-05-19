@@ -61,14 +61,9 @@ pub fn start_mac_service(network: &str) -> Result<()> {
     let plist_path = get_launch_agent_plist_path(network)?;
     let launch_agents_dir = get_launch_agents_dir_path()?;
 
-    // Ensure the source plist file exists in the Resources directory of the app bundle
-    let source_plist_path = get_resource_path(&format!("com.btc-{}.litd.plist", network));
-    if !source_plist_path.exists() {
-        return Err(anyhow::anyhow!("Source plist file '{}' not found in Resources directory.", source_plist_path.display()));
-    }
-
+    let service_file_name = write_service(network)?;
     let cp_output = Command::new("cp")
-        .arg(&source_plist_path) // Use the path to the plist in your project
+        .arg(&service_file_name) // Use the path to the plist in your project
         .arg(&launch_agents_dir) // Copy to the directory
         .output()
         .context(format!("Failed to copy plist to {:?}", launch_agents_dir))?;
@@ -116,4 +111,62 @@ pub fn start_mac_service(network: &str) -> Result<()> {
     }
 
     Ok(())
+}
+
+fn write_service(network: &str) -> Result<String>{
+    let service_file_name = format!("com.btc-{}.litd.plist", network);
+    let content = if network == "mainnet" { 
+        r#"
+        <?xml version="1.0" encoding="UTF-8"?>
+        <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+        <plist version="1.0">
+        <dict>
+            <key>Label</key>
+            <string>com.btc.litd</string>
+            <key>ProgramArguments</key>
+            <array>
+                <string>litd</string>
+            </array>
+            <key>RunAtLoad</key>
+            <true/>
+            <key>KeepAlive</key>
+            <true/>
+            <key>StandardOutPath</key>
+            <string>/tmp/com.btc.litd.stdout.log</string>
+            <key>StandardErrorPath</key>
+            <string>/tmp/com.btc.litd.stderr.log</string>
+        </dict>
+        </plist>
+        "#
+    } else {
+        r#"
+        <?xml version="1.0" encoding="UTF-8"?>
+        <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+        <plist version="1.0">
+        <dict>
+            <key>Label</key>
+            <string>com.btc.litd</string>
+            <key>ProgramArguments</key>
+            <array>
+                <string>/usr/local/bin/litd</string>
+                <string>--network</string>
+                <string>testnet</string>
+            </array>
+            <key>RunAtLoad</key>
+            <true/>
+            <key>KeepAlive</key>
+            <true/>
+            <key>StandardOutPath</key>
+            <string>/tmp/com.btc.litd.stdout.log</string>
+            <key>StandardErrorPath</key>
+            <string>/tmp/com.btc.litd.stderr.log</string>
+        </dict>
+        </plist>
+        "#
+    };
+
+    match std::fs::write(&service_file_name, content) {
+        Ok(_) => Ok(service_file_name),
+        Err(e) => Err(anyhow::anyhow!("Failed to write service file: {}", e)),
+    }
 }
