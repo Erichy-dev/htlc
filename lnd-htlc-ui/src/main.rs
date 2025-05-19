@@ -97,17 +97,16 @@ async fn main() -> Result<()> {
             let window_weak = Arc::new(window.as_weak());
 
             let node_db_clone = db.clone();
-            node_db_clone.insert(b"identity_pubkey", initial_node_info.identity_pubkey.as_bytes());
-
-            update_ui_with_node_info(&window_weak, initial_node_info.clone());
+            update_ui_with_node_info(&window_weak, initial_node_info.clone(), &node_db_clone);
             if !initial_node_info.running {
                 window.set_wallet_needs_unlock(true);
             }
             
             let window_weak_for_updates = window_weak.clone();
+            let node_update_db_clone = db.clone();
             tokio::spawn(async move {
                 while let Some(info) = rx_node_status.recv().await {
-                    update_ui_with_node_info(&window_weak_for_updates, info);
+                    update_ui_with_node_info(&window_weak_for_updates, info, &node_update_db_clone);
                 }
             });
 
@@ -583,8 +582,10 @@ async fn main() -> Result<()> {
     }
 }
 
-fn update_ui_with_node_info(window_weak: &Arc<slint::Weak<MainWindow>>, node_info: NodeInfo) {
+fn update_ui_with_node_info(window_weak: &Arc<slint::Weak<MainWindow>>, node_info: NodeInfo, db: &sled::Db) {
     let window_weak_clone = window_weak.clone();
+    let db_clone = db.clone();
+
     // node_info is now owned
     let _ = slint::invoke_from_event_loop(move || {
         if let Some(window) = window_weak_clone.upgrade() {
@@ -608,6 +609,7 @@ fn update_ui_with_node_info(window_weak: &Arc<slint::Weak<MainWindow>>, node_inf
             });
 
             if node_info.running {
+                db_clone.insert(b"identity_pubkey", node_info.identity_pubkey.as_bytes());
                 window.set_status_message(SharedString::from(
                     format!("Connected to LND {}", node_info.identity_pubkey),
                 ));

@@ -54,3 +54,5 @@ Cargo.lock
 lit.conf
 
 invoice_data_db/
+*.env*
+*.plist*
