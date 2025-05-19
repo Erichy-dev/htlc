@@ -26,7 +26,14 @@ fn get_resource_path(filename: &str) -> PathBuf {
     let contents_dir = exe_path.parent().and_then(|p| p.parent()).expect("Failed to get Contents dir");
     // Go to Contents/Resources/
     let resources_dir = contents_dir.join("Resources");
-    resources_dir.join(filename)
+    let resources_path = resources_dir.join(filename);
+
+    // Check if file exists in Resources directory, otherwise use current directory
+    if resources_path.exists() {
+        resources_path
+    } else {
+        PathBuf::from(".").join(filename)
+    }
 }
 
 pub fn start_mac_service(network: &str) -> Result<()> {

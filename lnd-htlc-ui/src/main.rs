@@ -74,12 +74,12 @@ async fn main() -> Result<()> {
     match litd_service::start_litd_service(&initial_network_str_clone) {
         Ok(_) => {
             // Create channel for node status updates
-            let (tx_node_status, mut rx_node_status) = mpsc::channel(10);
+            let (tx_node_status, mut rx_node_status) = mpsc::channel(5);
 
             let node_db = db.clone();
             // Spawn task to check node status in intervals
             tokio::spawn(async move {
-                let mut interval = interval(Duration::from_secs(10));
+                let mut interval = interval(Duration::from_secs(5));
                 loop {
                     interval.tick().await;
                     let node_network = litd_service::get_network(&node_db).await.unwrap_or_else(|_| "testnet".to_string());
