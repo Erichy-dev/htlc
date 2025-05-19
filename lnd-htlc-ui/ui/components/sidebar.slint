@@ -212,51 +212,65 @@ export component Sidebar inherits Rectangle {
             }
         }
 
-        // Rectangle {
-        //     padding: 5px;
-        //     HorizontalLayout {
-        //         TouchArea {
-        //             clicked => { root.toggle-network("mainnet"); }
-        //             Rectangle {
-        //                 width: 60px;
-        //                 height: 20px;
-        //                 border-radius: 6px;
-        //                 background: root.is-mainnet ? #20c997 : #555857;
-        //                 opacity: root.is-mainnet ? 1 : 0.5;
-        //                 Text {
-        //                     text: "Mainnet";
-        //                     color: white;
-        //                     font-size: 10px;
-        //                     font-weight: 500;
-        //                     vertical-alignment: center;
-        //                 }
-        //             }
-        //         }
+        VerticalLayout {
+            Text {
+                text: "Please configure your network files first before using the app";
+                color: #d0d0d0;
+                font-size: 12px;
+                font-weight: 500;
+                font-italic: true;
+            }
 
-        //         Rectangle {
-        //             width: 8px;
-        //         }
-                
-        //         TouchArea {
-        //             clicked => { root.toggle-network("testnet"); }
-        //             Rectangle {
-        //                 width: 60px;
-        //                 height: 20px;
-        //                 border-radius: 6px;
-        //                 background: !root.is-mainnet ? #dc3545 : #555857;
-        //                 opacity: !root.is-mainnet ? 1 : 0.5;
+            Rectangle {
+                height: 10px;
+            }
+            
+            Rectangle {
+                padding: 5px;
+                HorizontalLayout {
+                    TouchArea {
+                        clicked => { root.toggle-network("mainnet"); }
+                        Rectangle {
+                            width: 60px;
+                            height: 20px;
+                            border-radius: 6px;
+                            background: root.is-mainnet ? #20c997 : #555857;
+                            opacity: root.is-mainnet ? 1 : 0.5;
+                            Text {
+                                text: "Mainnet";
+                                color: white;
+                                font-size: 10px;
+                                font-weight: 500;
+                                vertical-alignment: center;
+                            }
+                        }
+                    }
     
-        //                 Text {
-        //                     text: "Testnet";
-        //                     color: white;
-        //                     font-size: 10px;
-        //                     font-weight: 500;
-        //                     vertical-alignment: center;
-        //                 }
-        //             }
-        //         }
-
-        //     }
-        // }
+                    Rectangle {
+                        width: 8px;
+                    }
+                    
+                    TouchArea {
+                        clicked => { root.toggle-network("testnet"); }
+                        Rectangle {
+                            width: 60px;
+                            height: 20px;
+                            border-radius: 6px;
+                            background: !root.is-mainnet ? #dc3545 : #555857;
+                            opacity: !root.is-mainnet ? 1 : 0.5;
+        
+                            Text {
+                                text: "Testnet";
+                                color: white;
+                                font-size: 10px;
+                                font-weight: 500;
+                                vertical-alignment: center;
+                            }
+                        }
+                    }
+    
+                }
+            }
+        }
     }
 } 
