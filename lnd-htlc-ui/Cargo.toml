@@ -28,3 +28,20 @@ base64 = "0.22.1"
 
 [build-dependencies]
 slint-build = "1.3"
+
+[package.metadata.bundle]
+name = "LND HTLC UI"
+identifier = "com.btc.lndhtlcui"
+icon = ["ui/views/images/lightning-logo.png"]
+version = "0.1.0"
+resources = [
+    "com.btc-testnet.litd.plist",
+    "com.btc-mainnet.litd.plist"
+]
+copyright = "Copyright (c) 2025 Your Name"
+category = "Finance"
+short_description = "Lightning Network HTLC UI"
+long_description = """
+A graphical user interface for managing HTLCs on the Lightning Network using LND/LITD.
+"""
+osx_minimum_system_version = "10.13"
