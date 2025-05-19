@@ -30,6 +30,7 @@ export component MainWindow inherits Window {
     in property <bool> status-checking: false;
     in property <[Channel]> channels: [];
     in property <[PendingChannel]> pending_channels: [];
+    in property <bool> is-mainnet: false;
     
     // Callbacks
     callback manage-channels();
@@ -44,7 +45,7 @@ export component MainWindow inherits Window {
     callback settle-custom-invoice(string); // preimage_x
     callback copy-to-clipboard(string); // payment_request
     callback unlock-wallet(string); // password
-
+    callback toggle-network(string); // network
     // Action page tracking
     in-out property <int> active-page: -1; // 0 = manage channels, 1 = create channel, 2 = generate x/h, 3 = custom invoice, 4 = pay invoice, 5 = claim invoice, 6 = standard invoice
     
@@ -79,7 +80,7 @@ export component MainWindow inherits Window {
         channels: root.channels;
         pending-channels: root.pending_channels;
         active-page <=> root.active-page;
-        
+        is-mainnet: root.is-mainnet;
         home => { root.active-page = -1; }
         manage-channels => { root.manage-channels(); }
         create-channel => { 
@@ -92,6 +93,7 @@ export component MainWindow inherits Window {
         create-custom-invoice => { root.active-page = 3; }
         create-standard-invoice => { root.active-page = 4; }
         wallet-view => { root.active-page = 5; }
+        toggle-network(network) => { root.toggle-network(network); }
 
         // Main content area based on active page
         if (active-page == -1): WelcomeView {

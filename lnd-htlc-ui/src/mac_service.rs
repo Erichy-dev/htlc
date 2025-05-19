@@ -2,12 +2,12 @@ use std::{env, path::PathBuf, process::Command};
 
 use anyhow::{Context, Result};
 
-fn get_launch_agent_plist_path() -> Result<PathBuf> {
+fn get_launch_agent_plist_path(network: &str) -> Result<PathBuf> {
     let home_dir = env::var("HOME").context("Failed to get HOME directory from environment variables")?;
     let mut path = PathBuf::from(home_dir);
     path.push("Library");
     path.push("LaunchAgents");
-    path.push("com.btc.litd.plist");
+    path.push(format!("com.btc-{}.litd.plist", network));
     Ok(path)
 }
 
@@ -19,12 +19,13 @@ fn get_launch_agents_dir_path() -> Result<PathBuf> {
     Ok(path)
 }
 
-pub fn start_mac_service() -> Result<()> {
+pub fn start_mac_service(network: &str) -> Result<()> {
+    let service_name = format!("com.btc-{}.litd", network);
     // Check if the service is already running
     // Using sh -c to correctly interpret pipes
     let check_output = Command::new("sh")
         .arg("-c")
-        .arg("launchctl list | grep com.btc.litd")
+        .arg(&format!("launchctl list | grep {}", service_name))
         .output()
         .context("Failed to execute launchctl list command")?;
 
@@ -34,19 +35,19 @@ pub fn start_mac_service() -> Result<()> {
     println!("{}", String::from_utf8_lossy(&check_output.stderr));
 
     if check_output.status.success() { // success() means grep found the service
-        println!("Service 'com.btc.litd' appears to be already loaded/running.");
+        println!("Service '{}' appears to be already loaded/running.", service_name);
         return Ok(());
     } else {
-        println!("Service 'com.btc.litd' not found by 'launchctl list | grep', proceeding with setup.");
+        println!("Service '{}' not found by 'launchctl list | grep', proceeding with setup.", service_name);
     }
 
-    let plist_path = get_launch_agent_plist_path()?;
+    let plist_path = get_launch_agent_plist_path(network)?;
     let launch_agents_dir = get_launch_agents_dir_path()?;
 
     // Ensure the source plist file exists in the current directory or expected location
-    let source_plist_path = PathBuf::from("com.btc.litd.plist");
+    let source_plist_path = PathBuf::from(format!("com.btc-{}.litd.plist", network));
     if !source_plist_path.exists() {
-        return Err(anyhow::anyhow!("Source plist file 'com.btc.litd.plist' not found in current directory."));
+        return Err(anyhow::anyhow!("Source plist file '{}' not found in current directory.", source_plist_path.display()));
     }
 
     let cp_output = Command::new("cp")
@@ -88,7 +89,7 @@ pub fn start_mac_service() -> Result<()> {
     // Attempt to start the service explicitly
     let start_output = Command::new("launchctl")
         .arg("start")
-        .arg("com.btc.litd") // Use the label here
+        .arg(&service_name) // Use the label here
         .output()
         .context("Failed to start service with launchctl start")?;
     println!("{}", String::from_utf8_lossy(&start_output.stdout));

@@ -6,7 +6,7 @@
     <string>com.btc.litd</string>
     <key>ProgramArguments</key>
     <array>
-        <string>/usr/local/bin/litd</string> <!-- Assuming litd is in /usr/local/bin. Adjust if needed. -->
+        <string>/usr/local/bin/litd</string>
         <string>--network</string>
         <string>testnet</string>
     </array>

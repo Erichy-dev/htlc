@@ -5,7 +5,7 @@ use anyhow::{Result, Context};
 
 use crate::{mac_service::start_mac_service, windows_service::start_windows_service};
 
-pub fn start_litd_service() -> Result<()> {
+pub fn start_litd_service(network: &str) -> Result<()> {
     // Determine the os type
     let os_type = Command::new("uname")
         .arg("-s")
@@ -15,9 +15,9 @@ pub fn start_litd_service() -> Result<()> {
     println!("OS type: {}", os_type);
 
     if os_type == "Darwin" {
-        start_mac_service()?;
+        start_mac_service(network)?;
     } else if os_type == "Windows" {
-        start_windows_service()?;
+        start_windows_service(network)?;
     } else {
         return Err(anyhow::anyhow!("This script is only supported on macOS and Windows"));
     }
@@ -39,4 +39,10 @@ pub fn stop_litd_service() -> Result<()> {
     }
 
     Ok(())
+}
+
+pub async fn get_network(db: &sled::Db) -> Result<String> {
+    let network = db.get(b"network")?.unwrap_or(sled::IVec::from(b"testnet"));
+    let network_str = String::from_utf8(network.to_vec()).unwrap_or_else(|_| "testnet".to_string());
+    Ok(network_str)
 }

@@ -14,6 +14,7 @@ export component AppLayout inherits Rectangle {
     in property <[Channel]> channels;
     in property <[PendingChannel]> pending-channels;
     in-out property <int> active-page;
+    in property <bool> is-mainnet: false;
     
     // UI navigation callbacks only
     callback home();
@@ -23,7 +24,8 @@ export component AppLayout inherits Rectangle {
     callback manage-invoices();
     callback create-custom-invoice();
     callback create-standard-invoice();
-    
+    callback toggle-network(network: string);
+
     background: #202020;
     
     VerticalLayout {
@@ -41,6 +43,7 @@ export component AppLayout inherits Rectangle {
                 wallet-needs-unlock: root.wallet-needs-unlock;
                 litd-started-by-app: root.litd-started-by-app;
                 status-checking: root.status-checking;
+                is-mainnet: root.is-mainnet;
                 
                 wallet-view => { root.wallet-view(); }
                 home => { root.home(); }
@@ -49,6 +52,7 @@ export component AppLayout inherits Rectangle {
                 manage-invoices => { root.manage-invoices(); }
                 create-custom-invoice => { root.create-custom-invoice(); }
                 create-standard-invoice => { root.create-standard-invoice(); }
+                toggle-network(network) => { root.toggle-network(network); }
             }
             
             // Main content area

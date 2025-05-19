@@ -15,11 +15,17 @@ pub struct NodeInfo {
     pub identity_pubkey: String,
 }
 
-pub async fn node_status() -> NodeInfo {
+pub async fn node_status(network: &str) -> NodeInfo {
     // Run lncli command and log results before starting UI
-    let output = Command::new("lncli")
-        .args(["--network", "testnet", "getinfo"])
-        .output();
+    let output = if network == "testnet" {
+        Command::new("lncli")
+            .args(["--network", "testnet", "getinfo"])
+            .output()
+    } else {
+        Command::new("lncli")
+            .args(["getinfo"])
+            .output()
+    };
 
     // Default values for when command fails
     let mut node_running = false;

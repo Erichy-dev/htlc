@@ -54,36 +54,44 @@ pub struct InvoiceData {
 
 #[tokio::main]
 async fn main() -> Result<()> {
+    // Initialize sled database
+    let db = match sled::open("invoice_data_db") {
+        Ok(db) => db,
+        Err(e) => {
+            eprintln!("CRITICAL: Failed to open sled database 'invoice_data_db': {}. Please check permissions and disk space.", e);
+            // For a real application, you might want to inform the user more gracefully or attempt a fallback.
+            // For now, we'll panic as persistence is key to the request.
+            panic!("Failed to open database: {}", e);
+        }
+    };
+
+    let initial_network_db = db.clone();
+    let initial_network = initial_network_db.get(b"network")?.unwrap_or(sled::IVec::from(b"testnet"));
+    let initial_network_str = String::from_utf8(initial_network.to_vec()).unwrap_or_else(|_| "testnet".to_string());
+
+    let initial_network_str_clone = initial_network_str.clone();
     // Start litd service
-    match litd_service::start_litd_service() {
+    match litd_service::start_litd_service(&initial_network_str_clone) {
         Ok(_) => {
             // Create channel for node status updates
             let (tx_node_status, mut rx_node_status) = mpsc::channel(10);
 
-            // Initialize sled database
-            let db = match sled::open("invoice_data_db") {
-                Ok(db) => db,
-                Err(e) => {
-                    eprintln!("CRITICAL: Failed to open sled database 'invoice_data_db': {}. Please check permissions and disk space.", e);
-                    // For a real application, you might want to inform the user more gracefully or attempt a fallback.
-                    // For now, we'll panic as persistence is key to the request.
-                    panic!("Failed to open database: {}", e);
-                }
-            };
-            
+            let node_db = db.clone();
             // Spawn task to check node status in intervals
             tokio::spawn(async move {
                 let mut interval = interval(Duration::from_secs(10));
                 loop {
                     interval.tick().await;
-                    let info = node_status().await;
+                    let node_network = litd_service::get_network(&node_db).await.unwrap_or_else(|_| "testnet".to_string());
+                    let info = node_status(&node_network).await;
                     if let Err(_) = tx_node_status.send(info).await {
                         break; 
                     }
                 }
             });
             
-            let initial_node_info = node_status().await;
+            let initial_network_str_clone = initial_network_str.clone();
+            let initial_node_info = node_status(&initial_network_str_clone).await;
             let window = MainWindow::new().map_err(|e| anyhow::anyhow!("Failed to create main window: {}", e))?;
             let window_weak = Arc::new(window.as_weak());
 
@@ -100,6 +108,43 @@ async fn main() -> Result<()> {
                 while let Some(info) = rx_node_status.recv().await {
                     update_ui_with_node_info(&window_weak_for_updates, info);
                 }
+            });
+
+            let network_window_weak = window_weak.clone();
+            let network_db = db.clone();
+            window.on_toggle_network(move |network: SharedString| {
+                println!("Toggling network: {}", network);
+                let network_str = network.to_string();
+                let task_arc_weak_clone = network_window_weak.clone();
+                let network_db_clone = network_db.clone();
+
+                tokio::spawn(async move {
+                    match litd_service::stop_litd_service() {
+                        Ok(_) => {
+                            println!("Litd service stopped successfully");
+                            tokio::time::sleep(Duration::from_secs(3)).await;
+                            
+                            match litd_service::start_litd_service(&network_str) {
+                                Ok(_) => {
+                                    println!("Litd service started successfully");
+                                    
+                                    network_db_clone.insert(b"network", network_str.as_bytes());
+                                    let _ = slint::invoke_from_event_loop(move || {
+                                        if let Some(window) = task_arc_weak_clone.upgrade() {
+                                            window.set_is_mainnet(network_str == "mainnet");
+                                        }
+                                    });
+                                }
+                                Err(e) => {
+                                    println!("Failed to start litd service: {}", e);
+                                }
+                            }
+                        }
+                        Err(e) => {
+                            println!("Failed to stop litd service: {}", e);
+                        }
+                    }
+                });
             });
 
             let wallet_window_weak = window_weak.clone();
@@ -142,13 +187,17 @@ async fn main() -> Result<()> {
 
             // Handle Manage Channels click
             let window_weak_clone = window_weak.clone();
+            let channels_db = db.clone();
             window.on_manage_channels(move || {
                 println!("Manage Channels clicked - fetching channel data...");
                 let ui_handle_weak = window_weak_clone.clone(); // Keep it weak for the spawn
-
+                let channels_db_clone = channels_db.clone();
+                
                 tokio::spawn(async move {
-                    let active_channels_result = channels::list_active_channels();
-                    let pending_channels_result = channels::list_pending_channels();
+                    let channels_network = litd_service::get_network(&channels_db_clone).await.unwrap_or_else(|_| "testnet".to_string());
+
+                    let active_channels_result = channels::list_active_channels(&channels_network);
+                    let pending_channels_result = channels::list_pending_channels(&channels_network);
 
                     // Now, schedule the UI update on the Slint event loop
                     let _ = slint::invoke_from_event_loop(move || {
@@ -203,19 +252,24 @@ async fn main() -> Result<()> {
             });
 
             let open_channel_weak_ref = window_weak.clone(); // Clone Arc<Weak> for the callback
+            let channel_db = db.clone();
             window.on_open_lightning_channel(move || { // This callback runs on the Slint thread
                 println!("Auto Open Channel button clicked");
                 
                 // We don't upgrade `ui` here to pass into tokio::spawn.
                 // Instead, clone the weak reference again for the tokio task.
                 let task_weak_ref = open_channel_weak_ref.clone(); 
+                let channel_db_clone = channel_db.clone();
                 
                 tokio::spawn(async move { // task_weak_ref (Arc<Weak<MainWindow>>) is moved here. This is Send + Sync.
                     const DEFAULT_CHANNEL_AMOUNT: u32 = 20000;
+
+                    let channel_network = litd_service::get_network(&channel_db_clone).await.unwrap_or_else(|_| "testnet".to_string());
                     
                     // --- Stage 1: List Peers (Async/Blocking work) ---
-                    let list_peers_result = channels::list_peers();
+                    let list_peers_result = channels::list_peers(&channel_network);
                     
+                    let channel_network_clone = channel_network.clone();
                     match list_peers_result {
                         Ok(peers) => {
                             if let Some(first_peer_pubkey_str) = peers.first().map(|s| s.to_string()) { // Own the string
@@ -230,7 +284,7 @@ async fn main() -> Result<()> {
                                 }).ok(); // .ok() to ignore error if UI is already closed
 
                                 // --- Stage 3: Open Channel (Async/Blocking work) ---
-                                let open_channel_result = channels::open_channel(&first_peer_pubkey_str, DEFAULT_CHANNEL_AMOUNT);
+                                let open_channel_result = channels::open_channel(&channel_network_clone, &first_peer_pubkey_str, DEFAULT_CHANNEL_AMOUNT);
                                 let weak_for_final_update = task_weak_ref.clone(); // Clone weak ref for the final update closure
 
                                 match open_channel_result {
@@ -292,6 +346,7 @@ async fn main() -> Result<()> {
             });
 
             let window_weak_clone = window_weak.clone();
+            let connect_db = db.clone();
             window.on_connect_peer(move |pubkey, host, port| {
                 println!("Connecting to peer: {} @ {}:{}", pubkey, host, port);
                 let port_num = match port.parse::<u16>() {
@@ -308,13 +363,16 @@ async fn main() -> Result<()> {
                 let pubkey_clone = pubkey.to_string();
                 let host_clone = host.to_string();
                 let window_weak_for_connect = window_weak_clone.clone();
+                let connect_db_clone = connect_db.clone();
+
                 if let Some(window) = window_weak_clone.upgrade() {
                     window.set_status_message(SharedString::from(
                         format!("Connecting to {}...", pubkey)
                     ));
                 }
                 tokio::spawn(async move {
-                    let result = channels::connect_to_peer(&pubkey_clone, &host_clone, port_num);
+                    let connect_network = litd_service::get_network(&connect_db_clone).await.unwrap_or_else(|_| "testnet".to_string());
+                    let result = channels::connect_to_peer(&connect_network, &pubkey_clone, &host_clone, port_num);
                     if let Some(window) = window_weak_for_connect.upgrade() {
                         match result {
                             Ok(output) => {

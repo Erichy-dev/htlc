@@ -3,6 +3,6 @@ use std::process::Command;
 
 const SERVICE_NAME: &str = "com.btc.litd";
 
-pub fn start_windows_service() -> Result<()> {
+pub fn start_windows_service(network: &str) -> Result<()> {
     Ok(())
 }

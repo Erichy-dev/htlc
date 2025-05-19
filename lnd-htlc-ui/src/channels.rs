@@ -34,14 +34,20 @@ pub struct PendingChannelInfo {
     pub status: String, 
 }
 
-pub fn connect_to_peer(pubkey: &str, host: &str, port: u16) -> Result<String> {
+pub fn connect_to_peer(network: &str, pubkey: &str, host: &str, port: u16) -> Result<String> {
     let addr = format!("{}@{}:{}", pubkey, host, port);
     
     println!("Attempting to connect to peer: {}", addr);
     
-    let output = Command::new("lncli")
-        .args(["--network", "testnet", "connect", &addr])
-        .output()?;
+    let output = if network == "mainnet" {
+        Command::new("lncli")
+            .args(["connect", &addr])
+            .output()?
+    } else {
+        Command::new("lncli")
+            .args(["--network", "testnet", "connect", &addr])
+            .output()?
+    };
     
     if output.status.success() {
         let stdout = String::from_utf8_lossy(&output.stdout);
@@ -54,10 +60,16 @@ pub fn connect_to_peer(pubkey: &str, host: &str, port: u16) -> Result<String> {
     }
 }
 
-pub fn list_active_channels() -> Result<Vec<ActiveChannelInfo>> {
-    let output = Command::new("lncli")
-        .args(["--network", "testnet", "listchannels"])
-        .output()?;
+pub fn list_active_channels(network: &str) -> Result<Vec<ActiveChannelInfo>> {
+    let output = if network == "mainnet" {
+        Command::new("lncli")
+            .args(["listchannels"])
+            .output()?
+    } else {
+        Command::new("lncli")
+            .args(["--network", "testnet", "listchannels"])
+            .output()?
+    };
 
     if output.status.success() {
         let stdout = String::from_utf8_lossy(&output.stdout);
@@ -93,10 +105,16 @@ pub fn list_active_channels() -> Result<Vec<ActiveChannelInfo>> {
     }
 }
 
-pub fn list_pending_channels() -> Result<Vec<PendingChannelInfo>> {
-    let output = Command::new("lncli")
-        .args(["--network", "testnet", "pendingchannels"])
-        .output()?;
+pub fn list_pending_channels(network: &str) -> Result<Vec<PendingChannelInfo>> {
+    let output = if network == "mainnet" {
+        Command::new("lncli")
+            .args(["pendingchannels"])
+            .output()?
+    } else {
+        Command::new("lncli")
+            .args(["--network", "testnet", "pendingchannels"])
+            .output()?
+    };
 
     if output.status.success() {
         let stdout = String::from_utf8_lossy(&output.stdout);
@@ -143,12 +161,18 @@ pub fn list_pending_channels() -> Result<Vec<PendingChannelInfo>> {
     }
 }
 
-pub fn list_peers() -> Result<Vec<String>> {
+pub fn list_peers(network: &str) -> Result<Vec<String>> {
     println!("Listing connected peers...");
     
-    let output = Command::new("lncli")
-        .args(["--network", "testnet", "listpeers"])
-        .output()?;
+    let output = if network == "mainnet" {
+        Command::new("lncli")
+            .args(["listpeers"])
+            .output()?
+    } else {
+        Command::new("lncli")
+            .args(["--network", "testnet", "listpeers"])
+            .output()?
+    };
     
     if !output.status.success() {
         let stderr = String::from_utf8_lossy(&output.stderr);
@@ -180,29 +204,39 @@ pub fn list_peers() -> Result<Vec<String>> {
     Ok(pub_keys)
 }
 
-pub fn auto_open_channel(amount: u32) -> Result<String> {
+pub fn auto_open_channel(network: &str, amount: u32) -> Result<String> {
     // Get list of peers
-    let peers = list_peers()?;
+    let peers = list_peers(network)?;
     
     // Choose the first peer
     let peer_pubkey = &peers[0];
     println!("Selected peer with pubkey: {}", peer_pubkey);
     
     // Open channel with selected peer
-    open_channel(peer_pubkey, amount)
+    open_channel(network, peer_pubkey, amount)
 }
 
-pub fn open_channel(pub_key: &str, amount: u32) -> Result<String> {
+pub fn open_channel(network: &str, pub_key: &str, amount: u32) -> Result<String> {
     println!("Opening channel with {} for {} sats", pub_key, amount);
     
-    let output = Command::new("lncli")
-        .args([
-            "--network", "testnet",
-            "openchannel",
-            pub_key,
-            &amount.to_string()
-        ])
-        .output()?;
+    let output = if network == "mainnet" {
+        Command::new("lncli")
+            .args([
+                "openchannel",
+                pub_key,
+                &amount.to_string()
+            ])
+            .output()?
+    } else {
+        Command::new("lncli")
+            .args([
+                "--network", "testnet",
+                "openchannel",
+                pub_key,
+                &amount.to_string()
+            ])
+            .output()?
+    };
     
     if output.status.success() {
         let stdout = String::from_utf8_lossy(&output.stdout);

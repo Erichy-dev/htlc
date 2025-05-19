@@ -7,6 +7,7 @@ export component Sidebar inherits Rectangle {
     in property <bool> wallet-needs-unlock;
     in property <bool> litd-started-by-app;
     in property <bool> status-checking: false;
+    in property <bool> is-mainnet: false;
     
     // Callbacks to parent - UI navigation only
     callback home();
@@ -18,7 +19,8 @@ export component Sidebar inherits Rectangle {
     callback pay-invoice();
     callback claim-invoice();
     callback create-standard-invoice();
-    
+    callback toggle-network(network: string);
+
     width: 220px;
     background: #1a1a1a;
     
@@ -28,7 +30,7 @@ export component Sidebar inherits Rectangle {
         
         // Node status indicator - simplified to just show status
         Rectangle {
-            height: 80px;
+            height: 95px;
             background: #252525;
             border-radius: 4px;
             
@@ -209,5 +211,52 @@ export component Sidebar inherits Rectangle {
                 clicked => { root.create-standard-invoice(); }
             }
         }
+
+        // Rectangle {
+        //     padding: 5px;
+        //     HorizontalLayout {
+        //         TouchArea {
+        //             clicked => { root.toggle-network("mainnet"); }
+        //             Rectangle {
+        //                 width: 60px;
+        //                 height: 20px;
+        //                 border-radius: 6px;
+        //                 background: root.is-mainnet ? #20c997 : #555857;
+        //                 opacity: root.is-mainnet ? 1 : 0.5;
+        //                 Text {
+        //                     text: "Mainnet";
+        //                     color: white;
+        //                     font-size: 10px;
+        //                     font-weight: 500;
+        //                     vertical-alignment: center;
+        //                 }
+        //             }
+        //         }
+
+        //         Rectangle {
+        //             width: 8px;
+        //         }
+                
+        //         TouchArea {
+        //             clicked => { root.toggle-network("testnet"); }
+        //             Rectangle {
+        //                 width: 60px;
+        //                 height: 20px;
+        //                 border-radius: 6px;
+        //                 background: !root.is-mainnet ? #dc3545 : #555857;
+        //                 opacity: !root.is-mainnet ? 1 : 0.5;
+    
+        //                 Text {
+        //                     text: "Testnet";
+        //                     color: white;
+        //                     font-size: 10px;
+        //                     font-weight: 500;
+        //                     vertical-alignment: center;
+        //                 }
+        //             }
+        //         }
+
+        //     }
+        // }
     }
 } 
