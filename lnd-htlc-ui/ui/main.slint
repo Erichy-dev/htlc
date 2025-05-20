@@ -72,7 +72,7 @@ export component MainWindow inherits Window {
     in-out property <string> generated_preimage_x: "";
     in-out property <string> generated_preimage_h: "";
     in-out property <string> payment_address: "";
-    in property <bool> confirmed-preimage: false;
+    in-out property <bool> confirmed-preimage: false;
     
     // Main app layout with sidebar and status bar
     AppLayout {
@@ -97,7 +97,7 @@ export component MainWindow inherits Window {
             root.create-channel-in-progress = false;
         }
         manage-invoices => { root.manage-invoices(); }
-        create-custom-invoice => { root.active-page = 3; }
+        create-custom-invoice => { root.active-page = 3; root.confirmed-preimage = false; }
         create-standard-invoice => { root.active-page = 4; }
         wallet-view => { root.active-page = 5; }
         toggle-network(network) => { root.toggle-network(network); }

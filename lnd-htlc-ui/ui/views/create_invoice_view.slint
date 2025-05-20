@@ -11,7 +11,7 @@ export component CreateCustomInvoiceView inherits Rectangle {
     in property <string> generated-preimage-h: "";
     in-out property <string> payment-address: "";
     in property <string> custom-invoice-status-message: "";
-    in property <bool> confirmed-preimage: false;
+    in-out property <bool> confirmed-preimage: false;
     
     background: transparent;
     vertical-stretch: 1;
