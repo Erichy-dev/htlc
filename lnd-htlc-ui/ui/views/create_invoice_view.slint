@@ -9,7 +9,6 @@ export component CreateCustomInvoiceView {
     in-out property <string> generated-preimage-x: "";
     in-out property <string> generated-preimage-h: "";
     in-out property <string> payment-address: "";
-    in-out property <bool> preimage-confirmed: false;
     in property <string> custom-invoice-status-message: "";
     
     VerticalLayout {
@@ -79,7 +78,7 @@ export component CreateCustomInvoiceView {
                     }
 
                     generated_preimage_x := LineEdit {
-                        placeholder-text: root.generated_preimage_x;
+                        placeholder-text: "Preimage X";
                         height: 36px;
                         width: 100%;
                     }
@@ -90,26 +89,26 @@ export component CreateCustomInvoiceView {
                     }
                     
                     generated_preimage_h := LineEdit {
-                        placeholder-text: root.generated_preimage_h;
+                        placeholder-text: "Preimage H";
                         height: 36px;
                         width: 100%;
                     }
                 }
 
                 Rectangle {
-                    height: 4px;
+                    height: 2px;
                 }
 
                 HorizontalLayout {
                     alignment: center;
+                    spacing: 8px;
                     
                     TouchArea {
-                        enabled: root.generated_preimage_x != "" && root.generated_preimage_h != "";
                         Rectangle {
                             width: 100px;
                             height: 36px;
                             border-radius: 4px;
-                            background: root.generated_preimage_x != "" && root.generated_preimage_h != "" ? #20dd4f : #808080;
+                            background: #20dd4f;
                             
                             Text {
                                 text: "Confirm X";
@@ -123,19 +122,10 @@ export component CreateCustomInvoiceView {
                             root.confirm-preimage(root.generated_preimage_x, root.generated_preimage_h);
                         }
                     }
-
-                    if root.preimage-confirmed:
-                        Text {
-                            text: "✅";
-                            height: 14px;
-                            color: #5294e2;
-                            font-weight: 500;
-                        }
-                    
                 }
                 
                 Rectangle {
-                    height: 4px;
+                    height: 2px;
                 }
                 
                 VerticalLayout {
@@ -207,7 +197,7 @@ export component CreateCustomInvoiceView {
 
                 if root.custom-invoice-status-message != "": Text {
                     text: root.custom-invoice-status-message;
-                    color: #e76a3d;
+                    color: #ddfadc;
                     font-weight: 500;
                     font-size: 14px;
                     horizontal-alignment: left;

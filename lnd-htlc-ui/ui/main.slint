@@ -55,7 +55,6 @@ export component MainWindow inherits Window {
     in property <bool> has-error: false;
     in property <string> standard-payment-address: "";
     in property <string> custom-invoice-status-message: "";
-    in-out property <bool> preimage-confirmed: false;
     
     // Local storage for preimage and hash
     property <string> current-preimage;
@@ -143,7 +142,6 @@ export component MainWindow inherits Window {
             generated-preimage-x <=> root.generated_preimage_x;
             generated-preimage-h <=> root.generated_preimage_h;
             payment-address <=> root.payment_address;
-            preimage-confirmed <=> root.preimage-confirmed;
             custom-invoice-status-message: root.custom-invoice-status-message;
         }
         

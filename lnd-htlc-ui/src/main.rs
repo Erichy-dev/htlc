@@ -473,22 +473,23 @@ async fn main() -> Result<()> {
             let confirm_preimage_window_weak_clone = window_weak.clone();
             window.on_confirm_preimage(move | pre_image_x: SharedString, pre_image_h: SharedString | {
                 if let Some(window) = confirm_preimage_window_weak_clone.upgrade() {
+                    let x_bytes = match hex::decode(pre_image_x.to_string()) {
+                        Ok(bytes) => bytes,
+                        Err(e) => {
+                            window.set_custom_invoice_status_message(SharedString::from(format!("Invalid preimage X")));
+                            return;
+                        }
+                    };
+
                     let mut hasher = Sha256::new();
-                    hasher.update(pre_image_x.as_bytes());
-                    let hash = hasher.finalize();
-                    let hash_str = hex::encode(hash);
-                    if hash_str == pre_image_h.to_string() {
-                        window.set_preimage_confirmed(true);
-                        let window_weak = confirm_preimage_window_weak_clone.clone();
-                        
-                        tokio::spawn(async move {
-                            tokio::time::sleep(std::time::Duration::from_secs(3)).await;
-                            if let Some(window) = window_weak.upgrade() {
-                                window.set_preimage_confirmed(false);
-                            }
-                        });
+                    hasher.update(x_bytes);
+                    let result = hasher.finalize();
+                    let result_hex = hex::encode(result);
+                    if result_hex == pre_image_h.to_string() {
+                        window.set_custom_invoice_status_message(SharedString::from("Preimage confirmed."));
                     } else {
-                        let status_message = format!("Preimage does not match.\nX: {} \nH: {} \nHash: {}", pre_image_x, pre_image_h, hash_str);
+                        let status_message = format!("Preimage does not match.");
+                        println!("{}", status_message);
                         window.set_custom_invoice_status_message(SharedString::from(status_message));
                     }
                 }
