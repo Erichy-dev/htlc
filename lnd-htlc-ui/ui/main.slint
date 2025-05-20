@@ -53,7 +53,7 @@ export component MainWindow inherits Window {
     in-out property <int> active-page: -1; // 0 = manage channels, 1 = create channel, 2 = generate x/h, 3 = custom invoice, 4 = pay invoice, 5 = claim invoice, 6 = standard invoice
     
     in property <bool> has-error: false;
-    in property <string> standard-payment-address: "";
+    in-out property <string> standard-payment-address: "";
     in property <string> custom-invoice-status-message: "";
     
     // Local storage for preimage and hash
@@ -97,8 +97,15 @@ export component MainWindow inherits Window {
             root.create-channel-in-progress = false;
         }
         manage-invoices => { root.manage-invoices(); }
-        create-custom-invoice => { root.active-page = 3; root.confirmed-preimage = false; }
-        create-standard-invoice => { root.active-page = 4; }
+        create-custom-invoice => { 
+            root.active-page = 3; 
+            root.confirmed-preimage = false; 
+            root.payment_address = "";
+        }
+        create-standard-invoice => { 
+            root.active-page = 4; 
+            root.standard_payment_address = "";
+        }
         wallet-view => { root.active-page = 5; }
         toggle-network(network) => { root.toggle-network(network); }
 

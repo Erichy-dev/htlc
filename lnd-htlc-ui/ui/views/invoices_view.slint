@@ -1,4 +1,4 @@
-import { ScrollView, VerticalBox, StandardListView, Button } from "std-widgets.slint";
+import { ScrollView, VerticalBox, StandardListView, Button, LineEdit } from "std-widgets.slint";
 
 export struct InvoiceDetails {
     memo: string,
@@ -130,25 +130,37 @@ export component InvoicesView inherits VerticalBox {
                                 }
                             
                                 if invoice_item.is_own_invoice && invoice_item.state == "ACCEPTED":
-                                    TouchArea {
-                                        HorizontalLayout {
-                                            alignment: end;
-                                            
-                                            Rectangle {
-                                                padding: 12px;
-                                                background: #5cb85c;
-                                                border-radius: 8px;
-                                                width: 65px;
-                                                height: 30px;
-    
-                                                Text {
-                                                    font-size: 16px;
-                                                    
-                                                    text: "Settle";
+                                    VerticalLayout {
+                                        spacing: 4px;
+
+                                        preimage-x := LineEdit {
+                                            placeholder-text: "Custom X";
+                                            height: 30px;
+                                            width: 200px;
+                                        }
+
+                                        TouchArea {
+                                            enabled: preimage-x.text != "";
+
+                                            HorizontalLayout {
+                                                alignment: end;
+                                                
+                                                Rectangle {
+                                                    padding: 12px;
+                                                    background: preimage-x.text != "" ? #5cb85c : #808080;
+                                                    border-radius: 8px;
+                                                    width: 65px;
+                                                    height: 30px;
+        
+                                                    Text {
+                                                        font-size: 16px;
+                                                        
+                                                        text: "Settle";
+                                                    }
                                                 }
                                             }
+                                            clicked => { root.settle-custom-invoice(preimage-x.text); }
                                         }
-                                        clicked => { root.settle-custom-invoice(invoice_item.r_hash); }
                                     }
                                 if invoice_item.state == "SETTLED":
                                     Rectangle {
@@ -181,12 +193,12 @@ export component InvoicesView inherits VerticalBox {
                                     }
                         }
                         
-                        Text {
-                            text: "Hash: " + invoice_item.r_hash;
-                            font-size: 12px;
-                            color: #e4e0e0;
-                            opacity: 0.7;
-                        }
+                        // Text {
+                        //     text: "Hash: " + invoice_item.r_hash;
+                        //     font-size: 12px;
+                        //     color: #e4e0e0;
+                        //     opacity: 0.7;
+                        // }
 
                         HorizontalLayout {
                             spacing: 10px;

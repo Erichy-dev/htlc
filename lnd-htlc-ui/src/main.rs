@@ -511,17 +511,17 @@ async fn main() -> Result<()> {
 
             let settle_window_weak_clone = window_weak.clone();
             let db_clone_for_settle = db.clone();
-            window.on_settle_custom_invoice(move |preimage_h| {
+            window.on_settle_custom_invoice(move |preimage_x| {
                 if let Some(window) = settle_window_weak_clone.upgrade() {
                     window.set_status_message(SharedString::from(format!(
-                        "Settling invoice with preimage hash: {}",
-                        preimage_h
+                        "Settling invoice with preimage: {}",
+                        preimage_x
                     )));
 
                     let refresh_ui_handle_weak = settle_window_weak_clone.clone();
                     let refresh_db_clone = db_clone_for_settle.clone();
 
-                    match invoice::settle_invoice(preimage_h.to_string(), &db_clone_for_settle) {
+                    match invoice::settle_invoice(preimage_x.to_string()) {
                         Ok(_) => {
                             window.set_status_message(SharedString::from("Invoice settled successfully. Refreshing list..."));
 
