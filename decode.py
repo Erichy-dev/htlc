@@ -1,0 +1,13 @@
+import base64
+
+# Base64-encoded string
+encoded = "bG50YjMyMG4xcDV6Y2dmc3BwNThmYWE1em5ka3A0NmZ2dDljZG56dXNzOTZuY25odDA4ZXU3ejlkam42dTdod2g2bXE2c3NkcXFjcXp6c3hxeXo1dnFzcDV0eWNkYWt0dHVrMnQ4OXZ0amswZ2NwMjV2NTBsdzUwZm5xbGV5NjBkMHB4MmQ3MjdjeGRzOXF4cHF5c2dxYXUyc2dqeDJsNmc3emdhcWNjeWh0N2sweTZyc3M2anhucTlkaDhmOHR3OGgyN3pmbnkzemRyeTZsM3I3c2VteHV1d2hlcWw1d3U3cG4wdTN4cHNrNDRteWo3dXJtdnF5MGt5MHVn"
+
+# Decode Base64 to bytes
+decoded_bytes = base64.b64decode(encoded)
+
+# Convert to string, ignoring errors
+decoded_str = decoded_bytes.decode('utf-8', errors='ignore')
+
+print(decoded_str)
+

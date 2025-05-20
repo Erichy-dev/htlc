@@ -50,24 +50,28 @@ pub async fn send_custom_message(message: String, identity_pubkey: String) -> Re
     // Convert message to hex using echo and xxd
     let hex_output = Command::new("sh")
         .arg("-c")
-        .arg(format!("echo -n \"{}\" | xxd -p", message))
+        .arg(format!("echo -n \"{}\" | xxd -p | tr -d '\n'", message))
         .output()
         .context("Failed to convert message to hex")?;
     let hex_message = String::from_utf8_lossy(&hex_output.stdout).trim().to_string();
 
-    // let output = Command::new("lncli")
-    //     .arg("--network")
-    //     .arg("testnet")
-    //     .arg("sendcustom") 
-    //     .arg("--peer")
-    //     .arg(identity_pubkey)
-    //     .arg("--data")
-    //     .arg(hex_message)
-    //     .arg("--type")
-    //     .arg("32768")
-    //     .output()
-    //     .context("Failed to send custom message")?;
-    // println!("{}", String::from_utf8_lossy(&output.stdout));
-    // println!("{}", String::from_utf8_lossy(&output.stderr));
+        // Using TLV record key 34349334
+    let tlv_data = format!("34349334={}", hex_message);
+
+    let output = Command::new("lncli")
+        .arg("--network")
+        .arg("testnet")
+        .arg("sendpayment") 
+        .arg("--dest")
+        .arg("038d276e996b87761a9c0c742a75f58f5ae39e0574448c7eae34c63ed1adb5753d")
+        .arg("--amt")
+        .arg("10")
+        .arg("--keysend")
+        .arg("--data")
+        .arg(tlv_data)
+        .output()
+        .context("Failed to send keysend msg")?;
+    println!("{}", String::from_utf8_lossy(&output.stdout));
+    println!("{}", String::from_utf8_lossy(&output.stderr));
     Ok(())
 }
