@@ -47,11 +47,15 @@ export component MainWindow inherits Window {
     callback copy-to-clipboard(string); // payment_request
     callback unlock-wallet(string); // password
     callback toggle-network(string); // network
+    callback confirm-preimage(string, string); // preimage_x, preimage_h
+
     // Action page tracking
     in-out property <int> active-page: -1; // 0 = manage channels, 1 = create channel, 2 = generate x/h, 3 = custom invoice, 4 = pay invoice, 5 = claim invoice, 6 = standard invoice
     
     in property <bool> has-error: false;
     in property <string> standard-payment-address: "";
+    in property <string> custom-invoice-status-message: "";
+    in-out property <bool> preimage-confirmed: false;
     
     // Local storage for preimage and hash
     property <string> current-preimage;
@@ -84,7 +88,6 @@ export component MainWindow inherits Window {
         active-page <=> root.active-page;
         is-mainnet: root.is-mainnet;
         wallet-balance <=> root.wallet-balance;
-
         home => { root.active-page = -1; }
         manage-channels => { root.manage-channels(); }
         create-channel => { 
@@ -134,9 +137,14 @@ export component MainWindow inherits Window {
             request-preimage-generation => {
                 root.request-preimage-generation();
             }
+            confirm-preimage(preimage_x, preimage_h) => {
+                root.confirm-preimage(preimage_x, preimage_h);
+            }
             generated-preimage-x <=> root.generated_preimage_x;
             generated-preimage-h <=> root.generated_preimage_h;
             payment-address <=> root.payment_address;
+            preimage-confirmed <=> root.preimage-confirmed;
+            custom-invoice-status-message: root.custom-invoice-status-message;
         }
         
         if (active-page == 4): CreateStandardInvoiceView {

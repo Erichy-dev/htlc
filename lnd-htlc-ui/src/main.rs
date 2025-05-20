@@ -11,6 +11,7 @@ mod windows_service;
 use anyhow::Result;
 use directories::ProjectDirs;
 use serde::{Deserialize, Serialize};
+use sha2::Sha256;
 use slint::{Model, ModelRc, SharedString, VecModel};
 use unlock_wallet::unlock_wallet_rpc;
 use std::path::PathBuf;
@@ -19,6 +20,8 @@ use std::sync::{Arc, Mutex};
 use tokio::sync::mpsc;
 use tokio::time::{interval, Duration};
 use chrono::{DateTime, NaiveDateTime, Utc};
+
+use sha2::Digest;
 
 use types::AppState;
 use utils::generate_preimage;
@@ -462,6 +465,31 @@ async fn main() -> Result<()> {
                                 e
                             )));
                         }
+                    }
+                }
+            });
+
+
+            let confirm_preimage_window_weak_clone = window_weak.clone();
+            window.on_confirm_preimage(move | pre_image_x: SharedString, pre_image_h: SharedString | {
+                if let Some(window) = confirm_preimage_window_weak_clone.upgrade() {
+                    let mut hasher = Sha256::new();
+                    hasher.update(pre_image_x.as_bytes());
+                    let hash = hasher.finalize();
+                    let hash_str = hex::encode(hash);
+                    if hash_str == pre_image_h.to_string() {
+                        window.set_preimage_confirmed(true);
+                        let window_weak = confirm_preimage_window_weak_clone.clone();
+                        
+                        tokio::spawn(async move {
+                            tokio::time::sleep(std::time::Duration::from_secs(3)).await;
+                            if let Some(window) = window_weak.upgrade() {
+                                window.set_preimage_confirmed(false);
+                            }
+                        });
+                    } else {
+                        let status_message = format!("Preimage does not match.\nX: {} \nH: {}", pre_image_x, pre_image_h);
+                        window.set_custom_invoice_status_message(SharedString::from(status_message));
                     }
                 }
             });

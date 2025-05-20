@@ -4,9 +4,13 @@ import { LineEdit } from "std-widgets.slint";
 export component CreateCustomInvoiceView {
     callback create-clicked(string, string, string, string); // preimage_x, preimage_h, amount, memo
     callback request-preimage-generation();
+    callback confirm-preimage(string, string); // preimage_x, preimage_h
+
     in-out property <string> generated-preimage-x: "";
     in-out property <string> generated-preimage-h: "";
     in-out property <string> payment-address: "";
+    in-out property <bool> preimage-confirmed: false;
+    in property <string> custom-invoice-status-message: "";
     
     VerticalLayout {
         spacing: 16px;
@@ -70,14 +74,68 @@ export component CreateCustomInvoiceView {
                     spacing: 8px;
 
                     Text {
-                        text: "Preimage (X): \{root.generated_preimage_x}";
+                        text: "Preimage (X)";
                         color: #c0c0c0; // Lighter color for generated output
                     }
 
+                    generated_preimage_x := LineEdit {
+                        placeholder-text: root.generated_preimage_x;
+                        height: 36px;
+                        width: 100%;
+                    }
+                    
                     Text {
-                        text: "Payment Hash (H): \{root.generated_preimage_h}";
+                        text: "Payment Hash (H)";
                         color: #c0c0c0; // Lighter color for generated output
                     }
+                    
+                    generated_preimage_h := LineEdit {
+                        placeholder-text: root.generated_preimage_h;
+                        height: 36px;
+                        width: 100%;
+                    }
+                }
+
+                Rectangle {
+                    height: 8px;
+                }
+
+                HorizontalLayout {
+                    alignment: center;
+                    
+                    TouchArea {
+                        enabled: root.generated_preimage_x != "" && root.generated_preimage_h != "";
+                        Rectangle {
+                            width: 100px;
+                            height: 36px;
+                            border-radius: 4px;
+                            background: root.generated_preimage_x != "" && root.generated_preimage_h != "" ? #20dd4f : #808080;
+                            
+                            Text {
+                                text: "Confirm X";
+                                color: white;
+                                font-weight: 600;
+                                horizontal-alignment: center;
+                                vertical-alignment: center;
+                            }
+                        }
+                        clicked => {
+                            root.confirm-preimage(root.generated_preimage_x, root.generated_preimage_h);
+                        }
+                    }
+
+                    if root.preimage-confirmed:
+                        Text {
+                            text: "✅";
+                            height: 14px;
+                            color: #5294e2;
+                            font-weight: 500;
+                        }
+                    
+                }
+                
+                Rectangle {
+                    height: 8px;
                 }
                 
                 VerticalLayout {
@@ -145,6 +203,15 @@ export component CreateCustomInvoiceView {
                     horizontal-alignment: left;
                     vertical-alignment: center;
                     padding: 8px;
+                }
+
+                if root.custom-invoice-status-message != "": Text {
+                    text: root.custom-invoice-status-message;
+                    color: #e76a3d;
+                    font-weight: 500;
+                    font-size: 14px;
+                    horizontal-alignment: left;
+                    wrap: word-wrap;
                 }
             }
         }
