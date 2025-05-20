@@ -488,7 +488,7 @@ async fn main() -> Result<()> {
                             }
                         });
                     } else {
-                        let status_message = format!("Preimage does not match.\nX: {} \nH: {}", pre_image_x, pre_image_h);
+                        let status_message = format!("Preimage does not match.\nX: {} \nH: {} \nHash: {}", pre_image_x, pre_image_h, hash_str);
                         window.set_custom_invoice_status_message(SharedString::from(status_message));
                     }
                 }
