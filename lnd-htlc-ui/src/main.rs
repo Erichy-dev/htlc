@@ -19,7 +19,7 @@ use std::rc::Rc;
 use std::sync::{Arc, Mutex};
 use tokio::sync::mpsc;
 use tokio::time::{interval, Duration};
-use chrono::{DateTime, NaiveDateTime, Utc};
+use chrono::{format, DateTime, NaiveDateTime, Utc};
 
 use sha2::Digest;
 
@@ -487,6 +487,9 @@ async fn main() -> Result<()> {
                     hasher.update(x_bytes);
                     let result = hasher.finalize();
                     let result_hex = hex::encode(result);
+                    println!("pre_image_x: {}", pre_image_x.to_string());
+                    println!("pre_image_h: {}", pre_image_h.to_string());
+                    println!("result_hex: {}", result_hex);
                     if result_hex == pre_image_h.to_string() {
                         window.set_custom_invoice_status_message(SharedString::from("Preimage confirmed."));
                         window.set_confirmed_preimage(true);
@@ -523,6 +526,27 @@ async fn main() -> Result<()> {
 
                     match invoice::settle_invoice(preimage_x.to_string()) {
                         Ok(_) => {
+                            let ms_db_clone = db_clone_for_settle.clone();
+                            match ms_db_clone.get(b"identity_pubkey") {
+                                Ok(Some(identity_pubkey)) => {
+                                    let identity_pubkey_str = String::from_utf8_lossy(&identity_pubkey).to_string();
+
+                                    tokio::spawn(async move {
+                                        match litd_service::send_custom_message(preimage_x.to_string(), identity_pubkey_str).await {
+                                            Ok(_) => {
+                                                println!("Custom message sent successfully");
+                                            }
+                                            Err(e) => {
+                                                println!("Error sending custom message: {}", e);
+                                            }
+                                        }
+                                    });
+                                }
+                                _ => {
+                                    println!("No identity pubkey found");
+                                }
+                            }
+
                             window.set_status_message(SharedString::from("Invoice settled successfully. Refreshing list..."));
 
                             // Spawn a task to refresh the invoices list
