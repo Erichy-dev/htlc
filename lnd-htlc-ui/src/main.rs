@@ -433,6 +433,7 @@ async fn main() -> Result<()> {
             let window_weak_clone = window_weak.clone();
             window.on_request_preimage_generation(move || {
                 let (preimage, hash) = generate_preimage();
+
                 if let Some(window) = window_weak_clone.upgrade() {
                     window.set_status_message(SharedString::from(format!(
                         "Generated preimage: {}, hash: {}",
@@ -477,6 +478,7 @@ async fn main() -> Result<()> {
                         Ok(bytes) => bytes,
                         Err(e) => {
                             window.set_custom_invoice_status_message(SharedString::from(format!("Invalid preimage X")));
+                            window.set_confirmed_preimage(false);
                             return;
                         }
                     };
@@ -487,10 +489,12 @@ async fn main() -> Result<()> {
                     let result_hex = hex::encode(result);
                     if result_hex == pre_image_h.to_string() {
                         window.set_custom_invoice_status_message(SharedString::from("Preimage confirmed."));
+                        window.set_confirmed_preimage(true);
                     } else {
                         let status_message = format!("Preimage does not match.\n\nPreimage X: {}\nPreimage H: {}\nHash: {}", pre_image_x, pre_image_h, result_hex);
                         println!("{}", status_message);
                         window.set_custom_invoice_status_message(SharedString::from(status_message));
+                        window.set_confirmed_preimage(false);
                     }
                 }
             });

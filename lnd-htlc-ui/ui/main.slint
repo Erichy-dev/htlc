@@ -72,6 +72,7 @@ export component MainWindow inherits Window {
     in-out property <string> generated_preimage_x: "";
     in-out property <string> generated_preimage_h: "";
     in-out property <string> payment_address: "";
+    in property <bool> confirmed-preimage: false;
     
     // Main app layout with sidebar and status bar
     AppLayout {
@@ -143,6 +144,7 @@ export component MainWindow inherits Window {
             generated-preimage-h <=> root.generated_preimage_h;
             payment-address <=> root.payment_address;
             custom-invoice-status-message: root.custom-invoice-status-message;
+            confirmed-preimage <=> root.confirmed-preimage;
             copy-to-clipboard(hash) => { root.copy-to-clipboard(hash); }
         }
         
