@@ -64,6 +64,8 @@ export component MainWindow inherits Window {
     in-out property <string> create-channel-status-message: "";
     in-out property <string> create-channel-funding-txid: "";
     in-out property <bool> create-channel-in-progress: false;
+    in-out property <string> user-preimage-x: "";
+    in-out property <string> user-preimage-h: "";
     
     // Property to hold all invoices
     in-out property <[InvoiceDetails]> all_invoices: [];
@@ -141,8 +143,11 @@ export component MainWindow inherits Window {
             }
             generated-preimage-x <=> root.generated_preimage_x;
             generated-preimage-h <=> root.generated_preimage_h;
+            user-preimage-x <=> root.user-preimage-x;
+            user-preimage-h <=> root.user-preimage-h;
             payment-address <=> root.payment_address;
             custom-invoice-status-message: root.custom-invoice-status-message;
+            copy-to-clipboard(hash) => { root.copy-to-clipboard(hash); }
         }
         
         if (active-page == 4): CreateStandardInvoiceView {

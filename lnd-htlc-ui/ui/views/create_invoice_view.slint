@@ -1,207 +1,270 @@
-import { LineEdit } from "std-widgets.slint";
+import { LineEdit, ScrollView } from "std-widgets.slint";
 
 // 1. Create Custom Invoice View
 export component CreateCustomInvoiceView {
     callback create-clicked(string, string, string, string); // preimage_x, preimage_h, amount, memo
     callback request-preimage-generation();
     callback confirm-preimage(string, string); // preimage_x, preimage_h
+    callback copy-to-clipboard(string); // preimage_x or preimage_h
 
-    in-out property <string> generated-preimage-x: "";
-    in-out property <string> generated-preimage-h: "";
+    in property <string> generated-preimage-x: "";
+    in property <string> generated-preimage-h: "";
     in-out property <string> payment-address: "";
     in property <string> custom-invoice-status-message: "";
+    in-out property <string> user-preimage-x: "";
+    in-out property <string> user-preimage-h: "";
     
-    VerticalLayout {
-        spacing: 16px;
-        
-        // Header
-        Text {
-            text: "Create Custom Invoice";
-            font-size: 24px;
-            font-weight: 600;
-            color: #e0e0e0;
-        }
-        
-        Rectangle {
+    Rectangle {
+        vertical-stretch: 1;
+        horizontal-stretch: 1;
+        background: #2a2a2a;
+        border-radius: 8px;
+
+        ScrollView {
             vertical-stretch: 1;
-            background: #2a2a2a;
-            border-radius: 8px;
-            
+            horizontal-stretch: 1;
+
             VerticalLayout {
-                padding: 24px;
                 spacing: 16px;
                 
+                // Header
                 Text {
-                    text: "Create a custom invoice with your own preimage:";
+                    text: "Create Custom Invoice";
+                    font-size: 24px;
+                    font-weight: 600;
                     color: #e0e0e0;
-                    font-weight: 500;
-                }
-
-                Rectangle {
-                    height: 8px;
-                }
-                
-                HorizontalLayout {
-                    alignment: center;
-                    
-                    TouchArea {
-                        Rectangle {
-                            width: 160px;
-                            height: 42px;
-                            border-radius: 4px;
-                            background: #5294e2;
-                            
-                            Text {
-                                text: "Generate H/X";
-                                color: white;
-                                font-weight: 600;
-                                horizontal-alignment: center;
-                                vertical-alignment: center;
-                            }
-                        }
-                        clicked => {
-                            root.request-preimage-generation();
-                        }
-                    }
-                }
-
-                Rectangle {
-                    height: 8px;
-                }
-
-                VerticalLayout {
-                    spacing: 8px;
-
-                    Text {
-                        text: "Preimage (X)";
-                        color: #c0c0c0; // Lighter color for generated output
-                    }
-
-                    generated_preimage_x := LineEdit {
-                        placeholder-text: "Preimage X";
-                        height: 36px;
-                        width: 100%;
-                    }
-                    
-                    Text {
-                        text: "Payment Hash (H)";
-                        color: #c0c0c0; // Lighter color for generated output
-                    }
-                    
-                    generated_preimage_h := LineEdit {
-                        placeholder-text: "Preimage H";
-                        height: 36px;
-                        width: 100%;
-                    }
-                }
-
-                Rectangle {
-                    height: 2px;
-                }
-
-                HorizontalLayout {
-                    alignment: center;
-                    spacing: 8px;
-                    
-                    TouchArea {
-                        Rectangle {
-                            width: 100px;
-                            height: 36px;
-                            border-radius: 4px;
-                            background: #20dd4f;
-                            
-                            Text {
-                                text: "Confirm X";
-                                color: white;
-                                font-weight: 600;
-                                horizontal-alignment: center;
-                                vertical-alignment: center;
-                            }
-                        }
-                        clicked => {
-                            root.confirm-preimage(root.generated_preimage_x, root.generated_preimage_h);
-                        }
-                    }
                 }
                 
                 Rectangle {
-                    height: 2px;
-                }
-                
-                VerticalLayout {
-                    spacing: 8px;
+                    vertical-stretch: 1;
                     
-                    Text {
-                        text: "Amount (sats):";
-                        color: #e0e0e0;
-                    }
-                    
-                    amount := LineEdit {
-                        placeholder-text: "Amount in satoshis";
-                        height: 36px;
-                    }
-                }
-                
-                VerticalLayout {
-                    spacing: 8px;
-                    
-                    Text {
-                        text: "Memo:";
-                        color: #e0e0e0;
-                    }
-                    
-                    memo := LineEdit {
-                        placeholder-text: "Optional description for the invoice";
-                        height: 36px;
-                    }
-                }
-
-                Rectangle {
-                    height: 8px;
-                }
-                
-                TouchArea {
-                    enabled: root.generated_preimage_x != "" && root.generated_preimage_h != "" && amount.text != "";
-                    Rectangle {
-                        width: 160px;
-                        height: 42px;
-                        border-radius: 4px;
-                        background: root.generated_preimage_x != "" && root.generated_preimage_h != "" && amount.text != "" ? #5294e2 : #808080;
+                    VerticalLayout {
+                        padding: 24px;
+                        spacing: 16px;
                         
                         Text {
-                            text: "Create Invoice";
-                            color: white;
-                            font-weight: 600;
-                            horizontal-alignment: center;
+                            text: "Create a custom invoice with your own preimage:";
+                            color: #e0e0e0;
+                            font-weight: 500;
+                        }
+        
+                        Rectangle {
+                            height: 8px;
+                        }
+                        
+                        HorizontalLayout {
+                            alignment: center;
+                            
+                            TouchArea {
+                                Rectangle {
+                                    width: 160px;
+                                    height: 42px;
+                                    border-radius: 4px;
+                                    background: #5294e2;
+                                    
+                                    Text {
+                                        text: "Generate H/X";
+                                        color: white;
+                                        font-weight: 600;
+                                        horizontal-alignment: center;
+                                        vertical-alignment: center;
+                                    }
+                                }
+                                clicked => {
+                                    root.request-preimage-generation();
+                                }
+                            }
+                        }
+        
+                        Rectangle {
+                            height: 8px;
+                        }
+        
+                        VerticalLayout {
+                            spacing: 8px;
+        
+                            HorizontalLayout {
+                                spacing: 12px;
+                                Text {
+                                    text: "Preimage (X)\n"+root.generated_preimage_x;
+                                    color: #c0c0c0; // Lighter color for generated output
+                                }
+        
+                                TouchArea {
+                                    width: 24px;
+                                    height: 24px;
+                                    
+                                    Rectangle {
+                                        background: #444;
+                                        border-radius: 4px;
+                                        width: 24px;
+                                        height: 24px;
+                                        
+                                        Text {
+                                            text: "📋";
+                                            font-size: 16px;
+                                        }
+                                    }
+                                    
+                                    clicked => {
+                                        // Copy payment request to clipboard
+                                        root.copy-to-clipboard(root.generated_preimage_x);
+                                    }
+                                }
+                            }
+        
+                            user_preimage_x := LineEdit {
+                                placeholder-text: "Preimage X";
+                                height: 36px;
+                                width: 100%;
+                            }
+                            
+                            HorizontalLayout {
+                                spacing: 12px;
+                                Text {
+                                    text: "Preimage (X)\n"+root.generated_preimage_x;
+                                    color: #c0c0c0; // Lighter color for generated output
+                                }
+        
+                                TouchArea {
+                                    width: 24px;
+                                    height: 24px;
+                                    
+                                    Rectangle {
+                                        background: #444;
+                                        border-radius: 4px;
+                                        width: 24px;
+                                        height: 24px;
+                                        
+                                        Text {
+                                            text: "📋";
+                                            font-size: 16px;
+                                        }
+                                    }
+                                    
+                                    clicked => {
+                                        // Copy payment request to clipboard
+                                        root.copy-to-clipboard(root.generated_preimage_x);
+                                    }
+                                }
+                            }
+                            
+                            user_preimage_h := LineEdit {
+                                placeholder-text: "Preimage H";
+                                height: 36px;
+                                width: 100%;
+                            }
+                        }
+        
+                        Rectangle {
+                            height: 2px;
+                        }
+        
+                        HorizontalLayout {
+                            alignment: center;
+                            spacing: 8px;
+                            
+                            TouchArea {
+                                Rectangle {
+                                    width: 100px;
+                                    height: 36px;
+                                    border-radius: 4px;
+                                    background: #20dd4f;
+                                    
+                                    Text {
+                                        text: "Confirm X";
+                                        color: white;
+                                        font-weight: 600;
+                                        horizontal-alignment: center;
+                                        vertical-alignment: center;
+                                    }
+                                }
+                                clicked => {
+                                    root.confirm-preimage(root.user_preimage_x, root.user_preimage_h);
+                                }
+                            }
+                        }
+                        
+                        Rectangle {
+                            height: 2px;
+                        }
+                        
+                        VerticalLayout {
+                            spacing: 8px;
+                            
+                            Text {
+                                text: "Amount (sats):";
+                                color: #e0e0e0;
+                            }
+                            
+                            amount := LineEdit {
+                                placeholder-text: "Amount in satoshis";
+                                height: 36px;
+                            }
+                        }
+                        
+                        VerticalLayout {
+                            spacing: 8px;
+                            
+                            Text {
+                                text: "Memo:";
+                                color: #e0e0e0;
+                            }
+                            
+                            memo := LineEdit {
+                                placeholder-text: "Optional description for the invoice";
+                                height: 36px;
+                            }
+                        }
+        
+                        Rectangle {
+                            height: 8px;
+                        }
+                        
+                        TouchArea {
+                            enabled: root.generated_preimage_x != "" && root.generated_preimage_h != "" && amount.text != "";
+                            Rectangle {
+                                width: 160px;
+                                height: 42px;
+                                border-radius: 4px;
+                                background: root.generated_preimage_x != "" && root.generated_preimage_h != "" && amount.text != "" ? #5294e2 : #808080;
+                                
+                                Text {
+                                    text: "Create Invoice";
+                                    color: white;
+                                    font-weight: 600;
+                                    horizontal-alignment: center;
+                                    vertical-alignment: center;
+                                }
+                            }
+                            clicked => {
+                                root.create-clicked(root.generated_preimage_x, root.generated_preimage_h, amount.text, memo.text);
+                            }
+                        }
+        
+                        Rectangle {
+                            height: 8px;
+                        }
+        
+                        if root.payment_address != "": Text {
+                            text: "Payment Address: \{root.payment_address}";
+                            color: #5294e2;
+                            font-weight: 500;
+                            font-size: 14px;
+                            horizontal-alignment: left;
                             vertical-alignment: center;
+                            padding: 8px;
+                        }
+        
+                        if root.custom-invoice-status-message != "": Text {
+                            text: root.custom-invoice-status-message;
+                            color: #ddfadc;
+                            font-weight: 500;
+                            font-size: 14px;
+                            horizontal-alignment: left;
+                            wrap: word-wrap;
                         }
                     }
-                    clicked => {
-                        root.create-clicked(root.generated_preimage_x, root.generated_preimage_h, amount.text, memo.text);
-                    }
-                }
-
-                Rectangle {
-                    height: 8px;
-                }
-
-                if root.payment_address != "": Text {
-                    text: "Payment Address: \{root.payment_address}";
-                    color: #5294e2;
-                    font-weight: 500;
-                    font-size: 14px;
-                    horizontal-alignment: left;
-                    vertical-alignment: center;
-                    padding: 8px;
-                }
-
-                if root.custom-invoice-status-message != "": Text {
-                    text: root.custom-invoice-status-message;
-                    color: #ddfadc;
-                    font-weight: 500;
-                    font-size: 14px;
-                    horizontal-alignment: left;
-                    wrap: word-wrap;
                 }
             }
         }

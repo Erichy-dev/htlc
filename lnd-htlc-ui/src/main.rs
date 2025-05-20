@@ -488,7 +488,7 @@ async fn main() -> Result<()> {
                     if result_hex == pre_image_h.to_string() {
                         window.set_custom_invoice_status_message(SharedString::from("Preimage confirmed."));
                     } else {
-                        let status_message = format!("Preimage does not match.");
+                        let status_message = format!("Preimage does not match.\n\nPreimage X: {}\nPreimage H: {}\nHash: {}", pre_image_x, pre_image_h, result_hex);
                         println!("{}", status_message);
                         window.set_custom_invoice_status_message(SharedString::from(status_message));
                     }
@@ -563,7 +563,7 @@ async fn main() -> Result<()> {
                     match invoice::copy_payment_request(payment_request.to_string()) {
                         Ok(_) => {
                             window.set_status_message(SharedString::from(format!(
-                                "Copied payment request to clipboard",
+                                "Copied to clipboard",
                             )));
                         }
                         Err(e) => {
