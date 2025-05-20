@@ -222,12 +222,12 @@ export component CreateCustomInvoiceView inherits Rectangle {
                     }
                     
                     TouchArea {
-                        enabled: root.generated_preimage_x != "" && root.generated_preimage_h != "" && amount.text != "" && root.confirmed-preimage;
+                        enabled: user-preimage-x.text != "" && user-preimage-h.text != "" && amount.text != "" && root.confirmed-preimage;
                         Rectangle {
                             width: 160px;
                             height: 42px;
                             border-radius: 4px;
-                            background: root.generated_preimage_x != "" && root.generated_preimage_h != "" && amount.text != "" && root.confirmed-preimage ? #5294e2 : #808080;
+                            background: user-preimage-x.text != "" && user-preimage-h.text != "" && amount.text != "" && root.confirmed-preimage ? #5294e2 : #808080;
                             
                             Text {
                                 text: "Create Invoice";
@@ -238,7 +238,7 @@ export component CreateCustomInvoiceView inherits Rectangle {
                             }
                         }
                         clicked => {
-                            root.create-clicked(root.generated_preimage_x, root.generated_preimage_h, amount.text, memo.text);
+                            root.create-clicked(user-preimage-x.text, user-preimage-h.text, amount.text, memo.text);
                         }
                     }
     
