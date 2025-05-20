@@ -46,7 +46,7 @@ pub async fn get_network(db: &sled::Db) -> Result<String> {
 }
 
 pub async fn send_custom_message(message: String, identity_pubkey: String) -> Result<()> {
-    // uses lncli --network testnet sendcustom --peer 038d276e996b87761a9c0c742a75f58f5ae39e0574448c7eae34c63ed1adb5753d --data $(echo -n "hello there" | xxd -p)
+    println!("Sending custom message: {} to {}", message, identity_pubkey);
     // Convert message to hex using echo and xxd
     let hex_output = Command::new("sh")
         .arg("-c")
@@ -55,19 +55,19 @@ pub async fn send_custom_message(message: String, identity_pubkey: String) -> Re
         .context("Failed to convert message to hex")?;
     let hex_message = String::from_utf8_lossy(&hex_output.stdout).trim().to_string();
 
-    let output = Command::new("lncli")
-        .arg("--network")
-        .arg("testnet")
-        .arg("sendcustom") 
-        .arg("--peer")
-        .arg(identity_pubkey)
-        .arg("--data")
-        .arg(hex_message)
-        .arg("--type")
-        .arg("32768")
-        .output()
-        .context("Failed to send custom message")?;
-    println!("{}", String::from_utf8_lossy(&output.stdout));
-    println!("{}", String::from_utf8_lossy(&output.stderr));
+    // let output = Command::new("lncli")
+    //     .arg("--network")
+    //     .arg("testnet")
+    //     .arg("sendcustom") 
+    //     .arg("--peer")
+    //     .arg(identity_pubkey)
+    //     .arg("--data")
+    //     .arg(hex_message)
+    //     .arg("--type")
+    //     .arg("32768")
+    //     .output()
+    //     .context("Failed to send custom message")?;
+    // println!("{}", String::from_utf8_lossy(&output.stdout));
+    // println!("{}", String::from_utf8_lossy(&output.stderr));
     Ok(())
 }
