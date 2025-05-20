@@ -1,7 +1,7 @@
 import { LineEdit, ScrollView } from "std-widgets.slint";
 
 // 1. Create Custom Invoice View
-export component CreateCustomInvoiceView {
+export component CreateCustomInvoiceView inherits Rectangle {
     callback create-clicked(string, string, string, string); // preimage_x, preimage_h, amount, memo
     callback request-preimage-generation();
     callback confirm-preimage(string, string); // preimage_x, preimage_h
@@ -11,29 +11,36 @@ export component CreateCustomInvoiceView {
     in property <string> generated-preimage-h: "";
     in-out property <string> payment-address: "";
     in property <string> custom-invoice-status-message: "";
-    in-out property <string> user-preimage-x: "";
-    in-out property <string> user-preimage-h: "";
     
-    Rectangle {
-        vertical-stretch: 1;
-        horizontal-stretch: 1;
-        background: #2a2a2a;
-        border-radius: 8px;
+    background: transparent;
+    vertical-stretch: 1;
+    horizontal-stretch: 1;
 
-        ScrollView {
+    VerticalLayout {
+        spacing: 16px;
+        padding: 10px;
+
+        // Header
+        HorizontalLayout {
+            alignment: center;
+            
+            Text {
+                text: "Create Custom Invoice";
+                font-size: 24px;
+                font-weight: 600;
+                color: #e0e0e0;
+            }
+        }
+        
+        Rectangle {
             vertical-stretch: 1;
             horizontal-stretch: 1;
+            background: #2a2a2a;
+            border-radius: 8px;
 
-            VerticalLayout {
-                spacing: 16px;
-                
-                // Header
-                Text {
-                    text: "Create Custom Invoice";
-                    font-size: 24px;
-                    font-weight: 600;
-                    color: #e0e0e0;
-                }
+            ScrollView {
+                vertical-stretch: 1;
+                horizontal-stretch: 1;
                 
                 Rectangle {
                     vertical-stretch: 1;
@@ -42,12 +49,6 @@ export component CreateCustomInvoiceView {
                         padding: 24px;
                         spacing: 16px;
                         
-                        Text {
-                            text: "Create a custom invoice with your own preimage:";
-                            color: #e0e0e0;
-                            font-weight: 500;
-                        }
-        
                         Rectangle {
                             height: 8px;
                         }
@@ -86,7 +87,7 @@ export component CreateCustomInvoiceView {
                             HorizontalLayout {
                                 spacing: 12px;
                                 Text {
-                                    text: "Preimage (X)\n"+root.generated_preimage_x;
+                                    text: "Preimage (H)\n"+root.generated-preimage-h;
                                     color: #c0c0c0; // Lighter color for generated output
                                 }
         
@@ -108,12 +109,12 @@ export component CreateCustomInvoiceView {
                                     
                                     clicked => {
                                         // Copy payment request to clipboard
-                                        root.copy-to-clipboard(root.generated_preimage_x);
+                                        root.copy-to-clipboard(root.generated_preimage_h);
                                     }
                                 }
                             }
         
-                            user_preimage_x := LineEdit {
+                            user-preimage-x := LineEdit {
                                 placeholder-text: "Preimage X";
                                 height: 36px;
                                 width: 100%;
@@ -122,7 +123,7 @@ export component CreateCustomInvoiceView {
                             HorizontalLayout {
                                 spacing: 12px;
                                 Text {
-                                    text: "Preimage (X)\n"+root.generated_preimage_x;
+                                    text: "Preimage (X)\n"+root.generated-preimage-x;
                                     color: #c0c0c0; // Lighter color for generated output
                                 }
         
@@ -144,16 +145,17 @@ export component CreateCustomInvoiceView {
                                     
                                     clicked => {
                                         // Copy payment request to clipboard
-                                        root.copy-to-clipboard(root.generated_preimage_x);
+                                        root.copy-to-clipboard(root.generated-preimage-x);
                                     }
                                 }
                             }
                             
-                            user_preimage_h := LineEdit {
+                            user-preimage-h := LineEdit {
                                 placeholder-text: "Preimage H";
                                 height: 36px;
                                 width: 100%;
                             }
+
                         }
         
                         Rectangle {
@@ -180,7 +182,7 @@ export component CreateCustomInvoiceView {
                                     }
                                 }
                                 clicked => {
-                                    root.confirm-preimage(root.user_preimage_x, root.user_preimage_h);
+                                    root.confirm-preimage(user-preimage-x.text, user-preimage-h.text);
                                 }
                             }
                         }
